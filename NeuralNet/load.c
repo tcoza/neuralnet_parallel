@@ -116,7 +116,7 @@ void load_inputdata(char *filename, ino_t inode)
 	errno = 0;
 	Matrix *input = loadedfile->data.input;
 	for (int i = 0; i < inputSize; i++)
-		if (msgpack_reader_next_asdouble(reader, rectarr_get(input, i, 0)) == -1)
+		if (msgpack_reader_next_asdouble(reader, (double *)rectarr_get(input, i, 0)) == -1)
 		{
 			if (errno) errMsg(ERR_MSG, filename);
 			else errPut(INVALID_FILE_FORMAT, filename);
@@ -172,11 +172,11 @@ void load_trainingset(char *filename, ino_t inode)
 		Matrix *output = loadedfile->data.trainingset.array[x].output = matrix_new(outputSize, 1);
 
 		for (int i = 0; i < inputSize; i++)
-			if (msgpack_reader_next_asdouble(reader, rectarr_get(input, i, 0)) == -1)
+			if (msgpack_reader_next_asdouble(reader, (double *)rectarr_get(input, i, 0)) == -1)
 				goto read_error;
 
 		for (int i = 0; i < outputSize; i++)
-			if (msgpack_reader_next_asdouble(reader, rectarr_get(output, i, 0)) == -1)
+			if (msgpack_reader_next_asdouble(reader, (double*)rectarr_get(output, i, 0)) == -1)
 				goto read_error;
 
 		continue;
@@ -212,27 +212,27 @@ int isFileLoaded(ino_t inode)
 	return 0;
 }
 
-void loadedfile_free(LoadedFile *this)
+void loadedfile_free(LoadedFile *that)
 {
-	switch (this->type)
+	switch (that->type)
 	{
 	case LF_TYPE_INPUTDATA:
-		rectarr_free(this->data.input);
+		rectarr_free(that->data.input);
 		break;
 	case LF_TYPE_TRAININGSET:
-		for (int i = 0; i < this->data.trainingset.length; i++)
-			rectarr_free(this->data.trainingset.array[i].input),
-			rectarr_free(this->data.trainingset.array[i].output);
-		free(this->data.trainingset.array);
+		for (int i = 0; i < that->data.trainingset.length; i++)
+			rectarr_free(that->data.trainingset.array[i].input),
+			rectarr_free(that->data.trainingset.array[i].output);
+		free(that->data.trainingset.array);
 		break;
 	}
-	free(this->filename);
-	free(this);
+	free(that->filename);
+	free(that);
 }
 
-void loadednet_free(LoadedNet *this)
+void loadednet_free(LoadedNet *that)
 {
-	free(this->name);
-	neuralnetwork_free(this->net);
-	free(this);
+	free(that->name);
+	neuralnetwork_free(that->net);
+	free(that);
 }

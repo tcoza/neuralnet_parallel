@@ -71,26 +71,26 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ErrorF\ErrorF.vcxproj">
-      <Project>{f5d3878f-583d-4d46-a3ee-ab397fbf06ad}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\GetL\GetL.vcxproj">
-      <Project>{8371e90f-7179-4791-aff0-a45c8c9b0f21}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\LList\LList.vcxproj">
-      <Project>{84a99a7b-7e8a-4b12-a624-15d7c6962ac0}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Random\Random.vcxproj">
-      <Project>{e8951bf6-111e-4a69-942d-2abb5cd7226a}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="NeuralNet.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="digit-dataset" />
     <None Include="digit-input-5" />
     <None Include="digit.net" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErrorF\ErrorF.vcxproj">
+      <Project>{404b0778-8b5a-4148-a820-56e157489af4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GetL\GetL.vcxproj">
+      <Project>{83d2f500-cf8a-4f61-ad74-3a9bd994c5e5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\LList\LList.vcxproj">
+      <Project>{2f865365-ab64-4ae6-b5f6-b1ed4fb7ce36}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Random\Random.vcxproj">
+      <Project>{95ecf24e-4d3d-405a-9b87-a1aa136c7e70}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}</ProjectGuid>

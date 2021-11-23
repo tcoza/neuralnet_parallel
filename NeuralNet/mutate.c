@@ -38,7 +38,7 @@ static void mutate_random(double rate)
 {
 	NeuralNetwork *net = getLoadedNet(selectednet)->net;
 
-	// Note that this is not dynamically allocated
+	// Note that that is not dynamically allocated
 	Layer layer;
 	for (int L = 0; L < net->numberOfLayers; L++)
 	{

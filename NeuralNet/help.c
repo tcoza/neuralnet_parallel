@@ -7,7 +7,7 @@ void help()
 	printf(format, "clone", "clone selected neural network");
 	printf(format, "crossover", "combine specified parent networks into a new child network");
 	printf(format, "get", "get specified property of selected neural network");
-	printf(format, "help", "prints this message");
+	printf(format, "help", "prints that message");
 	printf(format, "info", "prints information about the selected neural network");
 	printf(format, "load", "loads specified network or file into memory");
 	printf(format, "mutate", "randomly changes weights and biases in the selected neural network");

@@ -13,7 +13,7 @@ void new_net(int argc, char **argv)
 		{ printUsage(usage, argv[0]); return; }
 
 	// Get ActivationFunction
-	enum AF_TYPE af_type;
+	int af_type;
 	for (af_type = 0; af_type < AF_TYPE_COUNT; af_type++)
 		if (!strcmp(AF_TYPE_STRINGS[af_type], argv[2]))
 			break;
@@ -25,7 +25,7 @@ void new_net(int argc, char **argv)
 		if (sscanf(argv[i], "%d", &sizes[i-3]) != 1)
 			{ errPut(INVALID_VALUE_FOR, argv[i], (i==3) ? "inputsize" : "layersize"); free(sizes); return; }
 
-	NeuralNetwork *net = neuralnetwork_new(sizes[0], argc-4, &sizes[1], af_type);
+	NeuralNetwork *net = neuralnetwork_new(sizes[0], argc-4, &sizes[1], (AF_TYPE)af_type);
 	free(sizes);
 
 	LoadedNet *loadednet = (LoadedNet *)malloc(sizeof(LoadedNet));

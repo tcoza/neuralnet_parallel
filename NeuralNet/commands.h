@@ -11,16 +11,18 @@ typedef struct
 	TrainingExample *array;
 } TrainingSet;
 
+enum LF_TYPE
+{
+	LF_TYPE_INPUTDATA,
+	LF_TYPE_TRAININGSET
+};
+
 static char *LF_TYPE_STRINGS[] = { "INPUTDATA", "TRAININGSET" };
 typedef struct
 {
 	ino_t inode;		// To check if file is already loaded
 	char *filename;
-	enum
-	{
-		LF_TYPE_INPUTDATA,
-		LF_TYPE_TRAININGSET
-	} type;
+	enum LF_TYPE type;
 	union
 	{
 		Matrix *input;

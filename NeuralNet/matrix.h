@@ -10,18 +10,18 @@ typedef struct
 } RectangularArray;
 
 RectangularArray *rectarr_new(int height, int width, int size);
-void *rectarr_get(RectangularArray *this, int i, int j);
-//void *rectarr_set(struct RectangularArray *this, int i, int j, void *data);
-void rectarr_foreach(RectangularArray *this, void (*action)(void *, int, int));
-RectangularArray *rectarr_clone(RectangularArray *this);
-void rectarr_free(RectangularArray *this);
+void *rectarr_get(RectangularArray *that, int i, int j);
+//void *rectarr_set(struct RectangularArray *that, int i, int j, void *data);
+void rectarr_foreach(RectangularArray *that, void (*action)(void *, int, int));
+RectangularArray *rectarr_clone(RectangularArray *that);
+void rectarr_free(RectangularArray *that);
 
 typedef RectangularArray Matrix;
 
 Matrix *matrix_new(int height, int width);
-double matrix_get(Matrix *this, int i, int j);
-void matrix_set(Matrix *this, int i, int j, double v);
-void matrix_foreach(Matrix *this, void (*action)(double, int, int));
+double matrix_get(Matrix *that, int i, int j);
+void matrix_set(Matrix *that, int i, int j, double v);
+void matrix_foreach(Matrix *that, void (*action)(double, int, int));
 Matrix *matrix_print(Matrix *m);
 void printDouble(double v);
 

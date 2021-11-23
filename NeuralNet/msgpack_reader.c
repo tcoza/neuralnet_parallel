@@ -8,58 +8,58 @@
 // Returns NULL on failure.
 msgpack_reader *msgpack_reader_new(char *filename, size_t buff_size)
 {
-	msgpack_reader *this = (msgpack_reader *)malloc(sizeof(msgpack_reader));
+	msgpack_reader *that = (msgpack_reader *)malloc(sizeof(msgpack_reader));
 
-	this->file = fopen(filename, "rb");
-	if (!this->file) { free(this); return NULL; }
+	that->file = fopen(filename, "rb");
+	if (!that->file) { free(that); return NULL; }
 
-	msgpack_unpacked_init(&this->unpacked);
+	msgpack_unpacked_init(&that->unpacked);
 
-	this->buffer = (char *)malloc(buff_size);
+	that->buffer = (char *)malloc(buff_size);
 
 	// To trick msgpack_next into doing the work.
-	this->buff_size = buff_size;
-	this->len = this->buff_size;
-	this->off = this->buff_size;
+	that->buff_size = buff_size;
+	that->len = that->buff_size;
+	that->off = that->buff_size;
 
-	this->done = 0;
+	that->done = 0;
 
-	return this;
+	return that;
 }
 
 // REturn NULL on failure
-msgpack_object *msgpack_reader_next(msgpack_reader *this)
+msgpack_object *msgpack_reader_next(msgpack_reader *that)
 {
-	if (this->done)
+	if (that->done)
 		return NULL;
 
-	size_t off_prev = this->off;
-	switch (msgpack_unpack_next(&this->unpacked, this->buffer, this->len, &this->off))
+	size_t off_prev = that->off;
+	switch (msgpack_unpack_next(&that->unpacked, that->buffer, that->len, &that->off))
 	{
 	case MSGPACK_UNPACK_SUCCESS:
 	case MSGPACK_UNPACK_EXTRA_BYTES:
-		return &this->unpacked.data;
+		return &that->unpacked.data;
 	case MSGPACK_UNPACK_CONTINUE:
 		if (off_prev == 0)
 			return NULL;		// Buffer too small
-		this->off = off_prev;
-		memmove(this->buffer, &this->buffer[this->off], this->len - this->off);
-		this->off = this->len - this->off;
-		this->len = fread(&this->buffer[this->off], sizeof(char), this->buff_size - this->off, this->file);
-		if (this->len == 0)
-			this->done = 1;
-		this->len += this->off;
-		this->off = 0;
+		that->off = off_prev;
+		memmove(that->buffer, &that->buffer[that->off], that->len - that->off);
+		that->off = that->len - that->off;
+		that->len = fread(&that->buffer[that->off], sizeof(char), that->buff_size - that->off, that->file);
+		if (that->len == 0)
+			that->done = 1;
+		that->len += that->off;
+		that->off = 0;
 
-		return msgpack_reader_next(this);
+		return msgpack_reader_next(that);
 	case MSGPACK_UNPACK_PARSE_ERROR:
 	case MSGPACK_UNPACK_NOMEM_ERROR:
 		return NULL;
 	}
 }
 
-// Rrturns the number of objects successfully read from this
-int msgpack_reader_read(msgpack_reader *this, msgpack_object_type types[], int length, ...)
+// Rrturns the number of objects successfully read from that
+int msgpack_reader_read(msgpack_reader *that, msgpack_object_type types[], int length, ...)
 {
 	va_list list;
 	va_start(list, length);
@@ -67,7 +67,7 @@ int msgpack_reader_read(msgpack_reader *this, msgpack_object_type types[], int l
 	int i;
 	for (i = 0; i < length; i++)
 	{
-		msgpack_object *obj = msgpack_reader_next(this);
+		msgpack_object *obj = msgpack_reader_next(that);
 		if (!obj || obj->type != types[i])
 			break;
 
@@ -114,10 +114,10 @@ int msgpack_reader_read(msgpack_reader *this, msgpack_object_type types[], int l
 }
 
 // Returns the type of the converted value, -1 if failure (no object or unconvertible type)
-msgpack_object_type msgpack_reader_next_asdouble(msgpack_reader *this, double *ptr)
+msgpack_object_type msgpack_reader_next_asdouble(msgpack_reader *that, double *ptr)
 {
-	msgpack_object *obj = msgpack_reader_next(this);
-	if (!obj) return -1;
+	msgpack_object *obj = msgpack_reader_next(that);
+	if (!obj) return (msgpack_object_type)-1;
 
 	switch (obj->type)
 	{
@@ -138,15 +138,15 @@ msgpack_object_type msgpack_reader_next_asdouble(msgpack_reader *this, double *p
 			*ptr = obj->via.f64;
 			break;
 		default:
-			return -1;
+			return (msgpack_object_type)-1;
 	}
 	return obj->type;
 }
 
-void msgpack_reader_free(msgpack_reader *this)
+void msgpack_reader_free(msgpack_reader *that)
 {
-	fclose(this->file);
-	free(this->buffer);
-	msgpack_unpacked_destroy(&this->unpacked);
-	free(this);
+	fclose(that->file);
+	free(that->buffer);
+	msgpack_unpacked_destroy(&that->unpacked);
+	free(that);
 }

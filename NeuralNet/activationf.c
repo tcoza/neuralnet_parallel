@@ -27,6 +27,6 @@ static void relu01_initLayer(Layer *layer)
 
 static ActivationFunction activationFunctions[] =
 {
-	{ .type = LOGISTIC, .f = logistic_f, .df = logistic_df, .initLayer = logistic_initLayer },
-	{ .type = RELU_01, .f = relu01_f, .df = relu01_df, .initLayer = relu01_initLayer }
+	{ LOGISTIC, logistic_f, logistic_df, logistic_initLayer },
+	{ RELU_01, relu01_f, relu01_df, relu01_initLayer }
 };

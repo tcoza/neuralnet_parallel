@@ -8,45 +8,45 @@
 
 __host__ __device__ RectangularArray *rectarr_new(int height, int width, int size)
 {
-	RectangularArray *this = (RectangularArray *)mallocu(sizeof(RectangularArray));
-	this->size = size;
-	this->height = height;
-	this->width = width;
-	this->array = mallocu(height * width * size);
-	return this;
+	RectangularArray *that = (RectangularArray *)mallocu(sizeof(RectangularArray));
+	that->size = size;
+	that->height = height;
+	that->width = width;
+	that->array = mallocu(height * width * size);
+	return that;
 }
 
-__host__ __device__ void *rectarr_get(RectangularArray *this, int i, int j)
+__host__ __device__ void *rectarr_get(RectangularArray *that, int i, int j)
 {
-	if (i > this->height || j > this->width) return NULL;
-	return (void *)((char *)(this->array) + (i * this->width + j) * this->size);
+	if (i > that->height || j > that->width) return NULL;
+	return (void *)((char *)(that->array) + (i * that->width + j) * that->size);
 }
 
 /* It is hereby encouraged to use rectarr_get directly.
-void *rectarr_set(struct RectangularArray *this, int i, int j, void *data)
+void *rectarr_set(struct RectangularArray *that, int i, int j, void *data)
 {
-if (i > this->height || j > this->width) return NULL;
-return memcpy(rectarr_get(this, i, j), data, this->size);
+if (i > that->height || j > that->width) return NULL;
+return memcpy(rectarr_get(that, i, j), data, that->size);
 }*/
 
-void rectarr_foreach(RectangularArray *this, void (*action)(void *, int, int))
+void rectarr_foreach(RectangularArray *that, void (*action)(void *, int, int))
 {
-	for (int i = 0; i < this->height; i++)
-		for (int j = 0; j < this->width; j++)
-			action(rectarr_get(this, i, j), i, j);
+	for (int i = 0; i < that->height; i++)
+		for (int j = 0; j < that->width; j++)
+			action(rectarr_get(that, i, j), i, j);
 }
 
-__host__ __device__ RectangularArray *rectarr_clone(RectangularArray *this)
+__host__ __device__ RectangularArray *rectarr_clone(RectangularArray *that)
 {
-	RectangularArray *clone = rectarr_new(this->height, this->width, this->size);
-	memcpy(clone->array, this->array, this->height * this->width * this->size);
+	RectangularArray *clone = rectarr_new(that->height, that->width, that->size);
+	memcpy(clone->array, that->array, that->height * that->width * that->size);
 	return clone;
 }
 
-void rectarr_free(RectangularArray *this)
+void rectarr_free(RectangularArray *that)
 {
-	free(this->array);
-	free(this);
+	free(that->array);
+	free(that);
 }
 
 __host__ __device__ Matrix *matrix_new(int height, int width)
@@ -54,21 +54,21 @@ __host__ __device__ Matrix *matrix_new(int height, int width)
 	return rectarr_new(height, width, sizeof(double));
 }
 
-double matrix_get(Matrix *this, int i, int j)
+double matrix_get(Matrix *that, int i, int j)
 {
-	return *((double *)rectarr_get(this, i, j));
+	return *((double *)rectarr_get(that, i, j));
 }
 
-__host__ __device__ void matrix_set(Matrix *this, int i, int j, double v)
+__host__ __device__ void matrix_set(Matrix *that, int i, int j, double v)
 {
-	*((double *)rectarr_get(this, i, j)) = v;
+	*((double *)rectarr_get(that, i, j)) = v;
 }
 
-void matrix_foreach(Matrix *this, void (*action)(double, int, int))
+void matrix_foreach(Matrix *that, void (*action)(double, int, int))
 {
-	for (int i = 0; i < this->height; i++)
-		for (int j = 0; j < this->width; j++)
-			action(matrix_get(this, i, j), i, j);
+	for (int i = 0; i < that->height; i++)
+		for (int j = 0; j < that->width; j++)
+			action(matrix_get(that, i, j), i, j);
 }
 
 extern int stdoutIsTTY;

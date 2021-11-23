@@ -54,7 +54,7 @@ struct llist *llist_clear(struct llist *list) { return llist_clear_f(list, free)
 
 struct llist *llist_clear_f(struct llist *list, void (*free_element)(void *))
 {
-	for (struct _e_holder *curr = list->first; curr != NULL; curr = _ret1free2(curr->next, curr))
+	for (struct _e_holder *curr = list->first; curr != NULL; curr = (struct _e_holder *)_ret1free2(curr->next, curr))
 		free_element(curr->element);
 	list->first = NULL;
 	list->count = 0;

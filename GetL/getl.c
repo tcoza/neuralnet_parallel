@@ -38,7 +38,7 @@ char *fgetl(FILE *handle)
 	int lineindex = 0;
 	while (llist_count(list) != 0)
 	{
-		char *current = llist_remove(list, 0);
+		char *current = (char *)llist_remove(list, 0);
 		if (llist_count(list) == 0)	memcpy(&line[lineindex], current, currsize);
 		else memcpy(&line[lineindex], current, BUFFSIZE);
 		free(current);

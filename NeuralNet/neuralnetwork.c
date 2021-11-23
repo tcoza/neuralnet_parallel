@@ -14,35 +14,35 @@
 
 NeuralNetwork *neuralnetwork_new(int inputSize, int numberOfLayers, int layerSizes[], enum AF_TYPE af_type)
 {
-	NeuralNetwork *this = (NeuralNetwork *)malloc(sizeof(NeuralNetwork) + sizeof(Layer) * numberOfLayers);
-	this->inputSize = inputSize;
-	this->numberOfLayers = numberOfLayers;
-	this->activation = activationFunctions[af_type];
-	for (int i = 0; i < this->numberOfLayers; i++)
+	NeuralNetwork *that = (NeuralNetwork *)malloc(sizeof(NeuralNetwork) + sizeof(Layer) * numberOfLayers);
+	that->inputSize = inputSize;
+	that->numberOfLayers = numberOfLayers;
+	that->activation = activationFunctions[af_type];
+	for (int i = 0; i < that->numberOfLayers; i++)
 	{
-		this->layers[i].weights = matrix_new(layerSizes[i], i > 0 ? layerSizes[i-1] : inputSize);
-		this->layers[i].biases = matrix_new(layerSizes[i], 1);
-		this->activation.initLayer(&this->layers[i]);
+		that->layers[i].weights = matrix_new(layerSizes[i], i > 0 ? layerSizes[i-1] : inputSize);
+		that->layers[i].biases = matrix_new(layerSizes[i], 1);
+		that->activation.initLayer(&that->layers[i]);
 	}
-	return this;
+	return that;
 }
 
-NeuralNetwork *neuralnetwork_clone(NeuralNetwork *this)
+NeuralNetwork *neuralnetwork_clone(NeuralNetwork *that)
 {
-	NeuralNetwork *clone = (NeuralNetwork *)malloc(sizeof(NeuralNetwork) + sizeof(Layer) * this->numberOfLayers);
-	clone->inputSize = this->inputSize;
-	clone->numberOfLayers = this->numberOfLayers;
-	clone->activation = this->activation;
+	NeuralNetwork *clone = (NeuralNetwork *)malloc(sizeof(NeuralNetwork) + sizeof(Layer) * that->numberOfLayers);
+	clone->inputSize = that->inputSize;
+	clone->numberOfLayers = that->numberOfLayers;
+	clone->activation = that->activation;
 	for (int i = 0; i < clone->numberOfLayers; i++)
 	{
-		clone->layers[i].weights = rectarr_clone(this->layers[i].weights);
-		clone->layers[i].biases = rectarr_clone(this->layers[i].biases);
+		clone->layers[i].weights = rectarr_clone(that->layers[i].weights);
+		clone->layers[i].biases = rectarr_clone(that->layers[i].biases);
 	}
 	return clone;
 }
 
 // Returns 1 on success, 0 on failure.
-int neuralnetwork_serialize(NeuralNetwork *this, char *file)
+int neuralnetwork_serialize(NeuralNetwork *that, char *file)
 {
 	FILE *fbuf = fopen(file, "wb");
 	if (!fbuf) return 0;
@@ -50,19 +50,19 @@ int neuralnetwork_serialize(NeuralNetwork *this, char *file)
 	msgpack_packer packer;
 	msgpack_packer_init(&packer, fbuf, msgpack_fbuffer_write);
 
-	msgpack_pack_int(&packer, this->inputSize);
-	msgpack_pack_int(&packer, this->activation.type);
-	msgpack_pack_int(&packer, this->numberOfLayers);
-	for (int L = 0; L < this->numberOfLayers; L++)
-		msgpack_pack_int(&packer, this->layers[L].biases->height);
+	msgpack_pack_int(&packer, that->inputSize);
+	msgpack_pack_int(&packer, that->activation.type);
+	msgpack_pack_int(&packer, that->numberOfLayers);
+	for (int L = 0; L < that->numberOfLayers; L++)
+		msgpack_pack_int(&packer, that->layers[L].biases->height);
 
-	for (int L = 0; L < this->numberOfLayers; L++)
+	for (int L = 0; L < that->numberOfLayers; L++)
 	{
-		for (int i = 0; i < this->layers[L].weights->height; i++)
-			for (int j = 0; j < this->layers[L].weights->width; j++)
-				msgpack_pack_double(&packer, matrix_get(this->layers[L].weights, i, j));
-		for (int i = 0; i < this->layers[L].biases->height; i++)
-			msgpack_pack_double(&packer, matrix_get(this->layers[L].biases, i, 0));
+		for (int i = 0; i < that->layers[L].weights->height; i++)
+			for (int j = 0; j < that->layers[L].weights->width; j++)
+				msgpack_pack_double(&packer, matrix_get(that->layers[L].weights, i, j));
+		for (int i = 0; i < that->layers[L].biases->height; i++)
+			msgpack_pack_double(&packer, matrix_get(that->layers[L].biases, i, 0));
 	}
 
 	fclose(fbuf);
@@ -96,62 +96,62 @@ NeuralNetwork *neuralnetwork_deserialize(char *file)
 		layerSizes[L] = (int)temp;
 	}
 
-	NeuralNetwork *this = neuralnetwork_new((int)inputSize, (int)numberOfLayers, layerSizes, (enum AF_TYPE)af_type);
+	NeuralNetwork *that = neuralnetwork_new((int)inputSize, (int)numberOfLayers, layerSizes, (enum AF_TYPE)af_type);
 	free(layerSizes);
 
 	types[0] = MSGPACK_OBJECT_FLOAT64;		// For use in loop
-	for (int L = 0; L < this->numberOfLayers; L++)
+	for (int L = 0; L < that->numberOfLayers; L++)
 	{
-		for (int i = 0; i < this->layers[L].weights->height; i++)
-			for (int j = 0; j < this->layers[L].weights->width; j++)
-				if (msgpack_reader_read(reader, types, 1, rectarr_get(this->layers[L].weights, i, j)) != 1)
+		for (int i = 0; i < that->layers[L].weights->height; i++)
+			for (int j = 0; j < that->layers[L].weights->width; j++)
+				if (msgpack_reader_read(reader, types, 1, rectarr_get(that->layers[L].weights, i, j)) != 1)
 					goto read_error;
 
-		for (int i = 0; i < this->layers[L].biases->height; i++)
-			if (msgpack_reader_read(reader, types, 1, rectarr_get(this->layers[L].biases, i, 0)) != 1)
+		for (int i = 0; i < that->layers[L].biases->height; i++)
+			if (msgpack_reader_read(reader, types, 1, rectarr_get(that->layers[L].biases, i, 0)) != 1)
 				goto read_error;
 
 		continue;
 	read_error:
 		msgpack_reader_free(reader);
-		neuralnetwork_free(this);
+		neuralnetwork_free(that);
 		return NULL;
 	}
 
 	if (msgpack_reader_next(reader))
-		{ msgpack_reader_free(reader); neuralnetwork_free(this); return NULL; }
+		{ msgpack_reader_free(reader); neuralnetwork_free(that); return NULL; }
 	msgpack_reader_free(reader);
 
-	return this;
+	return that;
 }
 
 /** Behaviour:
 *  run input through the layer's weights and biases with the activationfunction
-*  if this is NULL, simply apply the activationfunction to input and return that same matrix.
+*  if that is NULL, simply apply the activationfunction to input and return that same matrix.
 *  if af is null, simply return the output of the layer without the activationfunction
 */
-__host__ __device__ Matrix *layer_output(Layer *this, Matrix *input, ActivationFunction *af)
+__host__ __device__ Matrix *layer_output(Layer *that, Matrix *input, ActivationFunction *af)
 {
-	if (this)
-		input = matrix_add(matrix_multiply(this->weights, input), this->biases);
+	if (that)
+		input = matrix_add(matrix_multiply(that->weights, input), that->biases);
 	if (af)
 		for (int i = 0; i < input->height; i++)
 			matrix_set(input, i, 0, af->f(matrix_get(input, i, 0)));
 	return input;
 }
 
-Matrix *neuralnetwork_output(NeuralNetwork *this, Matrix *input)
+Matrix *neuralnetwork_output(NeuralNetwork *that, Matrix *input)
 {
-	for (int l = 0; l < this->numberOfLayers; l++)
-		input = _ret1free2f(layer_output(&this->layers[l], input, &this->activation), l == 0 ? NULL : input, (void (*)(void *))rectarr_free);
+	for (int l = 0; l < that->numberOfLayers; l++)
+		input = (Matrix *)_ret1free2f(layer_output(&that->layers[l], input, &that->activation), l == 0 ? NULL : input, (void (*)(void *))rectarr_free);
 	return input;
 }
 
 static double getCost(Matrix *exOutput, Matrix *output);
-static Layer *neuralnetwork_getCostGradient(NeuralNetwork *this, TrainingExample *example);
+static Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example);
 static double cost;			// Increments by the cost function after a call to neuralnetwork_getCostGradient
 
-double neuralnetwork_train(NeuralNetwork *this, TrainingExample examples[], int numberOfExamples, double step)
+double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step)
 {
 	if (numberOfExamples == 0) return NAN;		// Nothing to do here
 
@@ -160,27 +160,27 @@ double neuralnetwork_train(NeuralNetwork *this, TrainingExample examples[], int 
 		cost = 0;
 		for (int x = 0; x < numberOfExamples; x++)
 		{
-			Matrix *output = neuralnetwork_output(this, examples[x].input);
+			Matrix *output = neuralnetwork_output(that, examples[x].input);
 			cost += getCost(output, examples[x].output);
 			rectarr_free(output);
 		}
 		return cost / numberOfExamples;
 	}
 
-	Layer *gradient = (Layer *)malloc(sizeof(Layer) * this->numberOfLayers);
+	Layer *gradient = (Layer *)malloc(sizeof(Layer) * that->numberOfLayers);
 	// Initialize gradient
-	for (int L = 0; L < this->numberOfLayers; L++)
-		gradient[L].weights = matrix_new(this->layers[L].weights->height, this->layers[L].weights->width),
-		gradient[L].biases = matrix_new(this->layers[L].biases->height, 1);
-	// Gradient values will be uninitialized at this point. Careful.
+	for (int L = 0; L < that->numberOfLayers; L++)
+		gradient[L].weights = matrix_new(that->layers[L].weights->height, that->layers[L].weights->width),
+		gradient[L].biases = matrix_new(that->layers[L].biases->height, 1);
+	// Gradient values will be uninitialized at that point. Careful.
 
 	cost = 0;
 	// Get gradient
 	for (int x = 0; x < numberOfExamples; x++)
 	{
-		Layer *gradientPart = neuralnetwork_getCostGradient(this, &examples[x]);
+		Layer *gradientPart = neuralnetwork_getCostGradient(that, &examples[x]);
 
-		for (int L = 0; L < this->numberOfLayers; L++)
+		for (int L = 0; L < that->numberOfLayers; L++)
 		{
 			for (int i = 0; i < gradient[L].weights->height; i++)
 			{
@@ -205,12 +205,12 @@ double neuralnetwork_train(NeuralNetwork *this, TrainingExample examples[], int 
 	}
 
 	// Apply gradient to neural network
-	for (int L = 0; L < this->numberOfLayers; L++)
+	for (int L = 0; L < that->numberOfLayers; L++)
 	{
 		matrix_multiply_scalar(gradient[L].weights, step / numberOfExamples);
 		matrix_multiply_scalar(gradient[L].biases, step / numberOfExamples);
-		matrix_subtract(this->layers[L].weights, gradient[L].weights);
-		matrix_subtract(this->layers[L].biases, gradient[L].biases);
+		matrix_subtract(that->layers[L].weights, gradient[L].weights);
+		matrix_subtract(that->layers[L].biases, gradient[L].biases);
 		rectarr_free(gradient[L].weights);
 		rectarr_free(gradient[L].biases);
 	}
@@ -237,38 +237,38 @@ static Matrix* createStandardBasisVector(int size, int component, double magnitu
 
 // Returns a gradient stored in an array of layers.
 // CAREFUL: The weights and biases in the layers will not be matrices, but RectangularArrays of Matrices of size 1 by 1
-static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *this, TrainingExample *example)
+static __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example)
 {
-	Layer *gradient = (Layer *)mallocu(sizeof(Layer) * this->numberOfLayers);
+	Layer *gradient = (Layer *)mallocu(sizeof(Layer) * that->numberOfLayers);
 
 	// Moved multiply_prev out
 
 	Matrix *input = example->input;
-	for (int L = 0; L < this->numberOfLayers; L++)
+	for (int L = 0; L < that->numberOfLayers; L++)
 	{
-		Matrix *rawOutput = layer_output(&this->layers[L], input, NULL);
-		layerMultiplier = rectarr_clone(this->layers[L].weights);
+		Matrix *rawOutput = layer_output(&that->layers[L], input, NULL);
+		layerMultiplier = rectarr_clone(that->layers[L].weights);
 
 		// Initialize gradient at current layer.
-		gradient[L].weights = rectarr_new(this->layers[L].weights->height, this->layers[L].weights->width, sizeof(Matrix *));
-		gradient[L].biases = rectarr_new(this->layers[L].biases->height, 1, sizeof(Matrix *));
+		gradient[L].weights = rectarr_new(that->layers[L].weights->height, that->layers[L].weights->width, sizeof(Matrix *));
+		gradient[L].biases = rectarr_new(that->layers[L].biases->height, 1, sizeof(Matrix *));
 
 		// Moved createStandardBasisVector out
 		
 		for (int i = 0; i < gradient[L].weights->height; i++)
 		{
-			double df = this->activation.df(matrix_get(rawOutput, i, 0));
+			double df = that->activation.df(matrix_get(rawOutput, i, 0));
 			for (int j = 0; j < gradient[L].weights->width; j++)
 			{
 				*(Matrix **)rectarr_get(gradient[L].weights, i, j) =
-					createStandardBasisVector(this->layers[L].biases->height, i, matrix_get(input, j, 0) * df);
+					createStandardBasisVector(that->layers[L].biases->height, i, matrix_get(input, j, 0) * df);
 
 					// Use the occasion to build layerMultiplier (optimization)
 				matrix_set(layerMultiplier, i, j, matrix_get(layerMultiplier, i, j) * df);
 			}
 
 			*(Matrix **)rectarr_get(gradient[L].biases, i, 0) =
-				createStandardBasisVector(this->layers[L].biases->height, i, df);
+				createStandardBasisVector(that->layers[L].biases->height, i, df);
 		}
 
 		// Take care of previous layers
@@ -280,7 +280,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 
 		rectarr_free(layerMultiplier);
 		if (L > 0) rectarr_free(input);
-		input = layer_output(NULL, rawOutput, &this->activation);
+		input = layer_output(NULL, rawOutput, &that->activation);
 	}
 
 	// Update cost
@@ -288,14 +288,14 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 
 	// Now apply cost function multiplier
 	layerMultiplier = matrix_transpose(matrix_multiply_scalar(matrix_subtract(input, example->output), 2));
-	for (int L = 0; L < this->numberOfLayers; L++)
+	for (int L = 0; L < that->numberOfLayers; L++)
 	{
 		rectarr_foreach(gradient[L].weights, multiply_prev);
 		rectarr_foreach(gradient[L].biases, multiply_prev);
 	}
 
 	rectarr_free(layerMultiplier);
-	if (this->numberOfLayers > 0) rectarr_free(input);
+	if (that->numberOfLayers > 0) rectarr_free(input);
 
 	return gradient;
 }
@@ -311,10 +311,10 @@ static double getCost(Matrix *exOutput, Matrix *output)
 	return c;
 }
 
-void neuralnetwork_free(NeuralNetwork *this)
+void neuralnetwork_free(NeuralNetwork *that)
 {
-	for (int l = 0; l < this->numberOfLayers; l++)
-		rectarr_free(this->layers[l].weights),
-		rectarr_free(this->layers[l].biases);
-	free(this);
+	for (int l = 0; l < that->numberOfLayers; l++)
+		rectarr_free(that->layers[l].weights),
+		rectarr_free(that->layers[l].biases);
+	free(that);
 }
