@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31702.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NeuralNet", "NeuralNet\NeuralNet.vcxproj", "{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GetL", "GetL\GetL.vcxproj", "{8371E90F-7179-4791-AFF0-A45C8C9B0F21}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LList", "LList\LList.vcxproj", "{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ErrorF", "ErrorF\ErrorF.vcxproj", "{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Random", "Random\Random.vcxproj", "{E8951BF6-111E-4A69-942D-2ABB5CD7226A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}.Debug|x64.ActiveCfg = Debug|x64
+		{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}.Debug|x64.Build.0 = Debug|x64
+		{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}.Debug|x86.ActiveCfg = Debug|x64
+		{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}.Release|x64.ActiveCfg = Release|x64
+		{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}.Release|x64.Build.0 = Release|x64
+		{20DF5DF5-ABC8-4AAE-9AB8-E3035297A95B}.Release|x86.ActiveCfg = Release|x64
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Debug|x64.ActiveCfg = Debug|x64
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Debug|x64.Build.0 = Debug|x64
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Debug|x86.ActiveCfg = Debug|Win32
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Debug|x86.Build.0 = Debug|Win32
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Release|x64.ActiveCfg = Release|x64
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Release|x64.Build.0 = Release|x64
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Release|x86.ActiveCfg = Release|Win32
+		{8371E90F-7179-4791-AFF0-A45C8C9B0F21}.Release|x86.Build.0 = Release|Win32
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Debug|x64.ActiveCfg = Debug|x64
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Debug|x64.Build.0 = Debug|x64
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Debug|x86.ActiveCfg = Debug|Win32
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Debug|x86.Build.0 = Debug|Win32
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Release|x64.ActiveCfg = Release|x64
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Release|x64.Build.0 = Release|x64
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Release|x86.ActiveCfg = Release|Win32
+		{84A99A7B-7E8A-4B12-A624-15D7C6962AC0}.Release|x86.Build.0 = Release|Win32
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Debug|x64.ActiveCfg = Debug|x64
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Debug|x64.Build.0 = Debug|x64
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Debug|x86.ActiveCfg = Debug|Win32
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Debug|x86.Build.0 = Debug|Win32
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Release|x64.ActiveCfg = Release|x64
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Release|x64.Build.0 = Release|x64
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Release|x86.ActiveCfg = Release|Win32
+		{F5D3878F-583D-4D46-A3EE-AB397FBF06AD}.Release|x86.Build.0 = Release|Win32
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Debug|x64.ActiveCfg = Debug|x64
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Debug|x64.Build.0 = Debug|x64
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Debug|x86.ActiveCfg = Debug|Win32
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Debug|x86.Build.0 = Debug|Win32
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Release|x64.ActiveCfg = Release|x64
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Release|x64.Build.0 = Release|x64
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Release|x86.ActiveCfg = Release|Win32
+		{E8951BF6-111E-4A69-942D-2ABB5CD7226A}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E7A3ADD3-961B-45FF-B8BA-AC6945E92179}
+	EndGlobalSection
+EndGlobal
