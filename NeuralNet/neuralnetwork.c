@@ -7,6 +7,10 @@
 #include "msgpack_reader.h"
 #include "activationf.c"
 #include "../_ret1free2.c"
+#include <time.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "mallocu.c"
 
 NeuralNetwork *neuralnetwork_new(int inputSize, int numberOfLayers, int layerSizes[], enum AF_TYPE af_type)
 {
@@ -126,7 +130,7 @@ NeuralNetwork *neuralnetwork_deserialize(char *file)
 *  if this is NULL, simply apply the activationfunction to input and return that same matrix.
 *  if af is null, simply return the output of the layer without the activationfunction
 */
-Matrix *layer_output(Layer *this, Matrix *input, ActivationFunction *af)
+__host__ __device__ Matrix *layer_output(Layer *this, Matrix *input, ActivationFunction *af)
 {
 	if (this)
 		input = matrix_add(matrix_multiply(this->weights, input), this->biases);
@@ -195,6 +199,7 @@ double neuralnetwork_train(NeuralNetwork *this, TrainingExample examples[], int 
 			}
 			rectarr_free(gradientPart[L].weights);
 			rectarr_free(gradientPart[L].biases);
+
 		}
 		free(gradientPart);
 	}
@@ -232,9 +237,9 @@ static Matrix* createStandardBasisVector(int size, int component, double magnitu
 
 // Returns a gradient stored in an array of layers.
 // CAREFUL: The weights and biases in the layers will not be matrices, but RectangularArrays of Matrices of size 1 by 1
-static Layer *neuralnetwork_getCostGradient(NeuralNetwork *this, TrainingExample *example)
+static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *this, TrainingExample *example)
 {
-	Layer *gradient = (Layer *)malloc(sizeof(Layer) * this->numberOfLayers);
+	Layer *gradient = (Layer *)mallocu(sizeof(Layer) * this->numberOfLayers);
 
 	// Moved multiply_prev out
 

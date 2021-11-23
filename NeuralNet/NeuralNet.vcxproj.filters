@@ -25,56 +25,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="activationf.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="crossover.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="get.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="help.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="info.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="load.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="matrix.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="msgpack_reader.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mutate.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="neuralnetwork.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="new.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="output.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="select.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="set.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="train.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClInclude Include="mallocu.c">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NeuralNet.rc" />
@@ -89,5 +42,55 @@
     <None Include="digit-input-5">
       <Filter>Input Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="activationf.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="crossover.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="get.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="help.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="info.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="load.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="matrix.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="msgpack_reader.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="mutate.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="neuralnetwork.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="new.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="output.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="select.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="set.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="train.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

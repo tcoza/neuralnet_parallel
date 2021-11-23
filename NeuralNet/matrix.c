@@ -2,18 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "matrix.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include "mallocu.c"
 
-RectangularArray *rectarr_new(int height, int width, int size)
+__host__ __device__ RectangularArray *rectarr_new(int height, int width, int size)
 {
-	RectangularArray *this = (RectangularArray *)malloc(sizeof(RectangularArray));
+	RectangularArray *this = (RectangularArray *)mallocu(sizeof(RectangularArray));
 	this->size = size;
 	this->height = height;
 	this->width = width;
-	this->array = malloc(height * width * size);
+	this->array = mallocu(height * width * size);
 	return this;
 }
 
-void *rectarr_get(RectangularArray *this, int i, int j)
+__host__ __device__ void *rectarr_get(RectangularArray *this, int i, int j)
 {
 	if (i > this->height || j > this->width) return NULL;
 	return (void *)((char *)(this->array) + (i * this->width + j) * this->size);
@@ -33,7 +36,7 @@ void rectarr_foreach(RectangularArray *this, void (*action)(void *, int, int))
 			action(rectarr_get(this, i, j), i, j);
 }
 
-RectangularArray *rectarr_clone(RectangularArray *this)
+__host__ __device__ RectangularArray *rectarr_clone(RectangularArray *this)
 {
 	RectangularArray *clone = rectarr_new(this->height, this->width, this->size);
 	memcpy(clone->array, this->array, this->height * this->width * this->size);
@@ -46,7 +49,7 @@ void rectarr_free(RectangularArray *this)
 	free(this);
 }
 
-Matrix *matrix_new(int height, int width)
+__host__ __device__ Matrix *matrix_new(int height, int width)
 {
 	return rectarr_new(height, width, sizeof(double));
 }
@@ -56,7 +59,7 @@ double matrix_get(Matrix *this, int i, int j)
 	return *((double *)rectarr_get(this, i, j));
 }
 
-void matrix_set(Matrix *this, int i, int j, double v)
+__host__ __device__ void matrix_set(Matrix *this, int i, int j, double v)
 {
 	*((double *)rectarr_get(this, i, j)) = v;
 }
@@ -130,7 +133,7 @@ void printDouble(double v)
 	else printf(fullDoubleFormat, v);
 }
 
-Matrix *matrix_add(Matrix *m1, Matrix *m2)
+__host__ __device__ Matrix *matrix_add(Matrix *m1, Matrix *m2)
 {
 	if (m1->height != m2->height || m1->width != m2->width)
 		return NULL;
@@ -164,7 +167,7 @@ double matrix_toScalar(Matrix *m)
 		return matrix_get(m, 0, 0);
 }
 
-Matrix *matrix_multiply(Matrix *m1, Matrix *m2)
+__host__ __device__ Matrix *matrix_multiply(Matrix *m1, Matrix *m2)
 {
 	if (m1->width != m2->height)
 		return NULL;

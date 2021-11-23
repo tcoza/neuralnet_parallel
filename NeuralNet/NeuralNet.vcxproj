@@ -11,22 +11,57 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="activationf.c" />
-    <ClCompile Include="crossover.c" />
-    <ClCompile Include="get.c" />
-    <ClCompile Include="help.c" />
-    <ClCompile Include="info.c" />
-    <ClCompile Include="load.c" />
-    <ClCompile Include="main.c" />
-    <ClCompile Include="matrix.c" />
-    <ClCompile Include="msgpack_reader.c" />
-    <ClCompile Include="mutate.c" />
-    <ClCompile Include="neuralnetwork.c" />
-    <ClCompile Include="new.c" />
-    <ClCompile Include="output.c" />
-    <ClCompile Include="select.c" />
-    <ClCompile Include="set.c" />
-    <ClCompile Include="train.c" />
+    <CudaCompile Include="activationf.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="crossover.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="get.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="help.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="info.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="load.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="main.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <ClInclude Include="mallocu.c">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <CudaCompile Include="matrix.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="msgpack_reader.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="mutate.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="neuralnetwork.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="new.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="output.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="select.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="set.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
+    <CudaCompile Include="train.c">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="commands.h" />
