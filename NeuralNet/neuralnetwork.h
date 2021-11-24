@@ -54,6 +54,7 @@ __host__ Layer* layer_toDevice(Layer*);
 __host__ Layer* layer_fromDevice(Layer*);
 __host__ NeuralNetwork* neuralnetwork_toDevice(NeuralNetwork*);
 
+extern ActivationFunction activationFunctions[];
 __host__ void initActivationFunctions();
 
 #endif

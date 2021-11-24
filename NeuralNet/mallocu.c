@@ -16,7 +16,7 @@ static __host__ __device__ void *mallocu(size_t size)
 #else
 	int result = cudaMalloc(&ptr, size);
 	if (result != 0)
-		printf("CudaMalloc error: %d\n", result);
+		printf("CudaMalloc error: %d (requested size: %d)\n", result, size);
 #endif
 	return ptr;
 }

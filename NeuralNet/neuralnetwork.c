@@ -5,7 +5,6 @@
 #include "matrix.h"
 #include "neuralnetwork.h"
 #include "msgpack_reader.h"
-#include "activationf.c"
 #include "../_ret1free2.c"
 #include <time.h>
 #include "device_launch_parameters.h"
@@ -178,7 +177,7 @@ __host__ __device__ Matrix *layer_output(Layer *that, Matrix *input, ActivationF
 		input = matrix_add(matrix_multiply(that->weights, input), that->biases);
 	if (af)
 		for (int i = 0; i < input->height; i++)
-			matrix_set(input, i, 0, f(matrix_get(input, i, 0)));
+			matrix_set(input, i, 0, F(matrix_get(input, i, 0)));
 	return input;
 }
 
@@ -246,9 +245,11 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 		}
 
 #define BLOCKDIM_MAX 1024
-		neuralnetwork_getCostGradient_parallel<<<(numberOfExamples-1)/BLOCK_DIM_MAX+1,BLOCKDIM_MAX>>>
+		neuralnetwork_getCostGradient_parallel<<<(numberOfExamples-1)/BLOCKDIM_MAX+1,BLOCKDIM_MAX>>>
 				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples);
-		cudaDeviceSynchronize();
+		cudaError_t error = cudaDeviceSynchronize();
+		if (error != cudaSuccess)
+			printf("Cuda error: %d\n", error);
 
 		cudaMemcpy(gradientParts, gradientPartsCuda, numberOfExamples * sizeof(Layer*), cudaMemcpyDeviceToHost);
 		for (int x = 0; x < numberOfExamples; x++)
@@ -317,6 +318,7 @@ __host__ __device__ static void multiply_prev(void* e, int i, int j)		// Very us
 #else
 #define layerMultiplier layerMultiplierD
 #endif // !__CUDA_ARCH__
+	printf("In layer multiplier: %p\n", e);
 	Matrix* v = *((Matrix**)e);
 	*((Matrix**)e) = matrix_multiply(layerMultiplier, v);
 	rectarr_free(v);
@@ -350,6 +352,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 	Matrix *input = example->input;
 	for (int L = 0; L < that->numberOfLayers; L++)
 	{
+		printf("In da loop: %d\n", L);
 		Matrix *rawOutput = layer_output(&that->layers[L], input, NULL);
 		layerMultiplier = rectarr_clone(that->layers[L].weights);
 
@@ -360,6 +363,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 		// Moved createStandardBasisVector out
 		for (int i = 0; i < gradient[L].weights->height; i++)
 		{
+			printf("In da inner loop: %d\n", i);
 			double df = DF(matrix_get(rawOutput, i, 0));
 			for (int j = 0; j < gradient[L].weights->width; j++)
 			{
@@ -380,6 +384,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 			rectarr_foreach(gradient[l].weights, multiply_prev);
 			rectarr_foreach(gradient[l].biases, multiply_prev);
 		}
+		printf("Outta da inner loop\n");
 
 		rectarr_free(layerMultiplier);
 		if (L > 0) rectarr_free(input);

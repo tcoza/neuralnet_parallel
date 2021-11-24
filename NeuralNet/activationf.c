@@ -25,13 +25,13 @@ static void relu01_initLayer(Layer *layer)
 	}
 }
 
-static ActivationFunction activationFunctions[] =
+ActivationFunction activationFunctions[] =
 {
 	{ LOGISTIC },
 	{ RELU_01 }
 };
 
-__global__ void initActivationFunctionsDevice(ActivationFunction *activationFunctions);
+__global__ static void initActivationFunctionsDevice(ActivationFunction *activationFunctions);
 
 __host__ void initActivationFunctions()
 {
@@ -49,7 +49,7 @@ __host__ void initActivationFunctions()
 	cudaMemcpy(activationFunctions, activationFunctionsCuda, sizeof(activationFunctions), cudaMemcpyDeviceToHost);
 }
 
-__global__ void initActivationFunctionsDevice(ActivationFunction *activationFunctions)
+__global__ static void initActivationFunctionsDevice(ActivationFunction *activationFunctions)
 {
 	activationFunctions[0].f_d = logistic_f;
 	activationFunctions[0].df_d = logistic_df;
