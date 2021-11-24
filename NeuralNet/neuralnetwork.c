@@ -62,9 +62,6 @@ __host__ Layer* layer_fromDevice(Layer* thus)
 	return that;
 }
 
-__host__ TrainingExample* trainingexample_toDevice(TrainingExample* that) { return (TrainingExample*)layer_toDevice((Layer *)that); }		// Hack
-__host__ TrainingExample* trainingexample_fromDevice(TrainingExample* thus) { return (TrainingExample*)layer_fromDevice((Layer*)thus); }	//
-
 __host__ NeuralNetwork* neuralnetwork_toDevice(NeuralNetwork* that)
 {
 	NeuralNetwork* thus;
@@ -173,9 +170,9 @@ NeuralNetwork *neuralnetwork_deserialize(char *file)
 __host__ __device__ Matrix *layer_output(Layer *that, Matrix *input, ActivationFunction *af)
 {
 #ifndef __CUDA_ARCH__
-	double (*f)(double) = af ? af->f : NULL;
+#define F(x) af->f(x)
 #else
-	double (*f)(double) = af ? af->f_d : NULL;
+#define F(x) af->f_d(x)
 #endif // !__CUDA_ARCH__
 	if (that)
 		input = matrix_add(matrix_multiply(that->weights, input), that->biases);
@@ -248,7 +245,9 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 			cudaMemcpy(&examplesCuda[x].output, &outputCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
 		}
 
-		neuralnetwork_getCostGradient_parallel<<<1,1024>>>(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples);
+#define BLOCKDIM_MAX 1024
+		neuralnetwork_getCostGradient_parallel<<<(numberOfExamples-1)/BLOCK_DIM_MAX+1,BLOCKDIM_MAX>>>
+				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples);
 		cudaDeviceSynchronize();
 
 		cudaMemcpy(gradientParts, gradientPartsCuda, numberOfExamples * sizeof(Layer*), cudaMemcpyDeviceToHost);

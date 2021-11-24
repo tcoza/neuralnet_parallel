@@ -52,8 +52,6 @@ void neuralnetwork_free(NeuralNetwork *that);
 // To and fro device
 __host__ Layer* layer_toDevice(Layer*);
 __host__ Layer* layer_fromDevice(Layer*);
-__host__ TrainingExample* trainingexample_toDevice(TrainingExample*);
-__host__ TrainingExample* trainingexample_fromDevice(TrainingExample*);
 __host__ NeuralNetwork* neuralnetwork_toDevice(NeuralNetwork*);
 
 __host__ void initActivationFunctions();
