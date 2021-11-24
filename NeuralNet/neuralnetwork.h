@@ -16,6 +16,8 @@ typedef struct
 	enum AF_TYPE type;
 	double (*f)(double);
 	double (*df)(double);
+	double (*f_d)(double);
+	double (*df_d)(double);
 	void (*initLayer)(Layer *);
 } ActivationFunction;
 

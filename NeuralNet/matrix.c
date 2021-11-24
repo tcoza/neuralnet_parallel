@@ -194,7 +194,6 @@ __host__ __device__ Matrix *matrix_multiply(Matrix *m1, Matrix *m2)
 {
 	if (m1->width != m2->height)
 		return NULL;
-
 	Matrix *ret = matrix_new(m1->height, m2->width);
 
 //	for (int i = 0; i < ret->height; i++)

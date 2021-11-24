@@ -1,8 +1,8 @@
 #include "neuralnetwork.h"
 #include "../Random/random.h"
 
-static double logistic_f(double x) { return 1 / (exp(-x) + 1); }
-static double logistic_df(double x) { double t = logistic_f(x); return t * (1 - t); }
+__host__ __device__ static double logistic_f(double x) { return 1 / (exp(-x) + 1); }
+__host__ __device__ static double logistic_df(double x) { double t = logistic_f(x); return t * (1 - t); }
 static void logistic_initLayer(Layer *layer)
 {
 	for (int i = 0; i < layer->weights->height; i++)
@@ -13,8 +13,8 @@ static void logistic_initLayer(Layer *layer)
 	}
 }
 
-static double relu01_df(double x) { return (x > 0) ? 1 : 0.01; }
-static double relu01_f(double x) { return x * relu01_df(x);  }
+__host__ __device__ static double relu01_df(double x) { return (x > 0) ? 1 : 0.01; }
+__host__ __device__ static double relu01_f(double x) { return x * relu01_df(x); }
 static void relu01_initLayer(Layer *layer)
 {
 	for (int i = 0; i < layer->weights->height; i++)
@@ -27,6 +27,6 @@ static void relu01_initLayer(Layer *layer)
 
 static ActivationFunction activationFunctions[] =
 {
-	{ LOGISTIC, logistic_f, logistic_df, logistic_initLayer },
-	{ RELU_01, relu01_f, relu01_df, relu01_initLayer }
+	{ LOGISTIC },
+	{ RELU_01 }
 };

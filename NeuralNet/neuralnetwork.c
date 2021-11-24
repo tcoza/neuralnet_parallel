@@ -75,8 +75,8 @@ __host__ NeuralNetwork* neuralnetwork_toDevice(NeuralNetwork* that)
 		Matrix* weightsCuda, * biasesCuda;
 		weightsCuda = rectarr_toDevice(that->layers[i].weights);
 		biasesCuda = rectarr_toDevice(that->layers[i].biases);
-		cudaMemcpy(&thus->layers[i].weights, weightsCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
-		cudaMemcpy(&thus->layers[i].biases, biasesCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
+		cudaMemcpy(&thus->layers[i].weights, &weightsCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
+		cudaMemcpy(&thus->layers[i].biases, &biasesCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
 	}
 	return thus;
 }
@@ -172,11 +172,16 @@ NeuralNetwork *neuralnetwork_deserialize(char *file)
 */
 __host__ __device__ Matrix *layer_output(Layer *that, Matrix *input, ActivationFunction *af)
 {
+#ifndef __CUDA_ARCH__
+	double (*f)(double) = af ? af->f : NULL;
+#else
+	double (*f)(double) = af ? af->f_d : NULL;
+#endif // !__CUDA_ARCH__
 	if (that)
 		input = matrix_add(matrix_multiply(that->weights, input), that->biases);
 	if (af)
 		for (int i = 0; i < input->height; i++)
-			matrix_set(input, i, 0, af->f(matrix_get(input, i, 0)));
+			matrix_set(input, i, 0, f(matrix_get(input, i, 0)));
 	return input;
 }
 
@@ -222,7 +227,7 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 	Layer** gradientParts = (Layer**)malloc(numberOfExamples * sizeof(Layer*));
 	// Get gradient
 
-	if (true)
+	if (false)
 	{
 		for (int x = 0; x < numberOfExamples; x++)
 			gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x]);
@@ -244,10 +249,13 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 		}
 
 		neuralnetwork_getCostGradient_parallel<<<1,1024>>>(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples);
-		
+		cudaDeviceSynchronize();
+
 		cudaMemcpy(gradientParts, gradientPartsCuda, numberOfExamples * sizeof(Layer*), cudaMemcpyDeviceToHost);
 		for (int x = 0; x < numberOfExamples; x++)
 			gradientParts[x] = layer_fromDevice(gradientParts[x]);
+
+		return 0;
 	}
 
 	for (int x = 0; x < numberOfExamples; x++)
@@ -296,7 +304,9 @@ __global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, Trai
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	if (x >= numberOfExamples) return;
+	printf("Here\n");
 	gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x]);
+	printf("There\n");
 }
 
 static Matrix* layerMultiplierH;
@@ -327,9 +337,11 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 #ifndef __CUDA_ARCH__
 #define layerMultiplier layerMultiplierH
 #define cost costH
+#define DF(x) (that->activation.df(x))
 #else
 #define layerMultiplier layerMultiplierD
 #define cost costD
+#define DF(x) (that->activation.df_d(x))
 #endif // !__CUDA_ARCH__
 
 	Layer *gradient = (Layer *)mallocu(sizeof(Layer) * that->numberOfLayers);
@@ -347,10 +359,9 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 		gradient[L].biases = rectarr_new(that->layers[L].biases->height, 1, sizeof(Matrix *));
 
 		// Moved createStandardBasisVector out
-		
 		for (int i = 0; i < gradient[L].weights->height; i++)
 		{
-			double df = that->activation.df(matrix_get(rawOutput, i, 0));
+			double df = DF(matrix_get(rawOutput, i, 0));
 			for (int j = 0; j < gradient[L].weights->width; j++)
 			{
 				*(Matrix **)rectarr_get(gradient[L].weights, i, j) =
