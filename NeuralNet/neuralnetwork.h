@@ -44,7 +44,7 @@ typedef struct
 NeuralNetwork *neuralnetwork_new(int inputSize, int numberOfLayers, int layerSizes[], enum AF_TYPE af);
 NeuralNetwork *neuralnetwork_clone(NeuralNetwork *that);
 Matrix *neuralnetwork_output(NeuralNetwork *that, Matrix *input);
-double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step);
+double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step, int parallel);
 int neuralnetwork_serialize(NeuralNetwork *that, char *file);
 NeuralNetwork *neuralnetwork_deserialize(char *file);
 void neuralnetwork_free(NeuralNetwork *that);

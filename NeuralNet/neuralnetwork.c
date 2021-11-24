@@ -195,7 +195,7 @@ __global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, Trai
 static double costH;			// Increments by the cost function after a call to neuralnetwork_getCostGradient
 static __device__ double costD;			// Increments by the cost function after a call to neuralnetwork_getCostGradient
 
-double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step)
+double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step, int parallel)
 {
 	if (numberOfExamples == 0) return NAN;		// Nothing to do here
 
@@ -222,9 +222,9 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 
 
 	Layer** gradientParts = (Layer**)malloc(numberOfExamples * sizeof(Layer*));
-	// Get gradient
 
-	if (false)
+	// Get gradient
+	if (!parallel)
 	{
 		for (int x = 0; x < numberOfExamples; x++)
 			gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x]);

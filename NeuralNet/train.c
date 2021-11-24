@@ -15,7 +15,7 @@ void handler(int signal) { interrupt = 1; }
 
 void train(int argc, char *argv[])
 {
-	const char *usage = "%s batchsize step iterations -[c|t|m|e]";
+	const char *usage = "%s batchsize step iterations -[c|t|m|e|p]";
 
 	if (argc < 4)
 	{
@@ -60,14 +60,15 @@ void train(int argc, char *argv[])
 	if (sscanf(argv[3], "%d", &iterations) != 1)
 		{ errPut(INVALID_VALUE_FOR, argv[3], "iterations"); return; }
 
-	int show_cost = 0, show_max_index = 0, show_time = 0, show_example = 0;
+	int show_cost = 0, show_max_index = 0, show_time = 0, show_example = 0, parallel = 0;
 	for (int i = 4; i < argc; i++)
-		switch (strmat(argv[i], "-c", "-m", "-t", "-e", NULL))
+		switch (strmat(argv[i], "-c", "-m", "-t", "-e", "-p", NULL))
 		{
 		case 1: show_cost = 1; break;
 		case 2: show_max_index = 1; break;
 		case 3: show_time = 1; break;
 		case 4: show_example = 1; break;
+		case 5: parallel = 1; break;
 		default:
 			errPut(INVALID_OPTION, argv[i]);
 			return;
@@ -85,7 +86,7 @@ void train(int argc, char *argv[])
 		shuffle_array(trainingset->array, sizeof(TrainingExample), trainingset->length, batchsize);
 
 		clock_t begin = clock();
-		double cost = neuralnetwork_train(net, trainingset->array, batchsize, step);
+		double cost = neuralnetwork_train(net, trainingset->array, batchsize, step, parallel);
 		clock_t end = clock();
 
 		if (show_cost + show_time + show_max_index + show_example > 1)
