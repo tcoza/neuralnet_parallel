@@ -29,7 +29,7 @@ if (i > that->height || j > that->width) return NULL;
 return memcpy(rectarr_get(that, i, j), data, that->size);
 }*/
 
-void rectarr_foreach(RectangularArray *that, void (*action)(void *, int, int))
+__host__ __device__ void rectarr_foreach(RectangularArray *that, void (*action)(void *, int, int))
 {
 	for (int i = 0; i < that->height; i++)
 		for (int j = 0; j < that->width; j++)
@@ -43,10 +43,32 @@ __host__ __device__ RectangularArray *rectarr_clone(RectangularArray *that)
 	return clone;
 }
 
-void rectarr_free(RectangularArray *that)
+__host__ RectangularArray* rectarr_toDevice(RectangularArray* that)
 {
-	free(that->array);
-	free(that);
+	RectangularArray* thus;
+	cudaMalloc(&thus, sizeof(RectangularArray));
+	cudaMemcpy(thus, that, sizeof(RectangularArray), cudaMemcpyHostToDevice);
+	void* thus_array;
+	cudaMalloc(&thus_array, that->height * that->width * that->size);
+	cudaMemcpy(thus_array, that->array, that->height * that->width * that->size, cudaMemcpyHostToDevice);
+	cudaMemcpy(&thus->array, &thus_array, sizeof(void*), cudaMemcpyHostToDevice);
+	return thus;
+}
+
+__host__ RectangularArray* rectarr_fromDevice(RectangularArray* thus)
+{
+	RectangularArray* that = (RectangularArray*)malloc(sizeof(RectangularArray));
+	cudaMemcpy(that, thus, sizeof(RectangularArray), cudaMemcpyDeviceToHost);
+	void* thus_array = that->array;
+	that->array = malloc(that->height * that->width * that->size);
+	cudaMemcpy(that->array, thus_array, that->height * that->width * that->size, cudaMemcpyDeviceToHost);
+	return that;
+}
+
+__host__ __device__ void rectarr_free(RectangularArray *that)
+{
+	freeu(that->array);
+	freeu(that);
 }
 
 __host__ __device__ Matrix *matrix_new(int height, int width)
@@ -54,7 +76,7 @@ __host__ __device__ Matrix *matrix_new(int height, int width)
 	return rectarr_new(height, width, sizeof(double));
 }
 
-double matrix_get(Matrix *that, int i, int j)
+__host__ __device__ double matrix_get(Matrix *that, int i, int j)
 {
 	return *((double *)rectarr_get(that, i, j));
 }
@@ -143,7 +165,7 @@ __host__ __device__ Matrix *matrix_add(Matrix *m1, Matrix *m2)
 	return m1;
 }
 
-Matrix *matrix_subtract(Matrix *m1, Matrix *m2)
+__host__ __device__ Matrix *matrix_subtract(Matrix *m1, Matrix *m2)
 {
 	if (m1->height != m2->height || m1->width != m2->width)
 		return NULL;
@@ -153,7 +175,7 @@ Matrix *matrix_subtract(Matrix *m1, Matrix *m2)
 	return m1;
 }
 
-Matrix *matrix_multiply_scalar(Matrix *m, double v)
+__host__ __device__ Matrix *matrix_multiply_scalar(Matrix *m, double v)
 {
 	for (int i = 0; i < m->height; i++)
 		for (int j = 0; j < m->width; j++)
@@ -165,6 +187,7 @@ double matrix_toScalar(Matrix *m)
 {
 	if (m->height == 1 && m->width == 1)
 		return matrix_get(m, 0, 0);
+	return 0;
 }
 
 __host__ __device__ Matrix *matrix_multiply(Matrix *m1, Matrix *m2)
@@ -199,7 +222,7 @@ __host__ __device__ Matrix *matrix_multiply(Matrix *m1, Matrix *m2)
 
 }
 
-Matrix *matrix_transpose(Matrix *m)
+__host__ __device__ Matrix *matrix_transpose(Matrix *m)
 {
 	Matrix *ret = matrix_new(m->width, m->height);
 	for (int i = 0; i < ret->height; i++)
