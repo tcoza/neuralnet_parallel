@@ -56,4 +56,6 @@ __host__ TrainingExample* trainingexample_toDevice(TrainingExample*);
 __host__ TrainingExample* trainingexample_fromDevice(TrainingExample*);
 __host__ NeuralNetwork* neuralnetwork_toDevice(NeuralNetwork*);
 
+__host__ void initActivationFunctions();
+
 #endif

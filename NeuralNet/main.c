@@ -25,6 +25,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	initActivationFunctions();		// Set the device functions
+
 	loadednets = llist_new();
 	loadedfiles = llist_new();
 	selectednet = 0;
