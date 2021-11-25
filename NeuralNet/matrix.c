@@ -12,17 +12,16 @@ __host__ __device__ RectangularArray *rectarr_new(int height, int width, size_t 
 	that->size = size;
 	that->height = height;
 	that->width = width;
-	//printf("Creating rectarr %d x %d x %d\n", height, width, size);
-	int totalSizePart = height * width;
-	if (totalSizePart == 0)
-	{
-		printf("Total size part is zero\n");
-	}
-	size_t totalSize = (size_t)totalSizePart * size;
+	int product = height * width;
+	if (product == 0)
+		printf("product is zero\n");
+	int totalSize = (size_t)product * size;
+	if (totalSize == 0)
+		printf("totalSize is zero\n");
 	that->array = mallocu(totalSize);
 	if (that->array == NULL)
 	{
-		printf("Tried allocating array: %d x %d x %lu (total size part: %d, total size: %lu)\n", height, width, size, totalSizePart, totalSize);
+		printf("Tried allocating array: %d x %d (product: %d, totalSize: %ld)\n", height, width, product, totalSize);
 	}
 	return that;
 }

@@ -33,6 +33,9 @@ ActivationFunction activationFunctions[] =
 
 __global__ static void initActivationFunctionsDevice(ActivationFunction *activationFunctions);
 
+#include <time.h>
+#include <stdio.h>
+
 __host__ void initActivationFunctions()
 {
 	activationFunctions[0].f = logistic_f;

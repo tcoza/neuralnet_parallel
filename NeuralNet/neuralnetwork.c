@@ -306,24 +306,40 @@ __global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, Trai
 	printf("There: %lf\n", cost);
 }
 
-__host__ __device__ static void multiply_prev(Layer* gradient, int L, Matrix* layerMultiplier)		// Very useful
+__host__ __device__ static void multiply_prev(Matrix* layerMultiplier, RectangularArray* rectarr, int i, int j)
 {
-#define MULT(matrix, i, j)									\
-{															\
-	/*printf("MULT: %d %d\n", i, j);*/						\
-	Matrix** e = (Matrix**)rectarr_get(matrix, i, j);		\
-	Matrix* v = *((Matrix**)e);								\
-	*((Matrix**)e) = matrix_multiply(layerMultiplier, v);	\
-	rectarr_free(v);										\
+	Matrix** e = (Matrix**)rectarr_get(rectarr, i, j);
+	Matrix* v = *((Matrix**)e);
+	*((Matrix**)e) = matrix_multiply(layerMultiplier, v);
+	rectarr_free(v);
 }
+__host__ __device__ static void multiply_prev_gradient(Layer* gradient, int L, Matrix* layerMultiplier)		// Very useful
+{
 	for (int l = 0; l < L; l++)
 	{
 		for (int i = 0; i < gradient[l].weights->height; i++)
 			for (int j = 0; j < gradient[l].weights->width; j++)
-				MULT(gradient[l].weights, i, j);
+				multiply_prev(layerMultiplier, gradient[l].weights, i, j);
 		for (int i = 0; i < gradient[l].biases->height; i++)
-			MULT(gradient[l].biases, i, 0);
+			multiply_prev(layerMultiplier, gradient[l].biases, i, 0);
 	}
+}
+__global__ void multiply_prev_gradient_parallel(Layer* gradient, int L, Matrix* layerMultiplier)
+{
+	int thread = blockIdx.x * blockDim.x + threadIdx.x;
+	int l;
+	for (l = 0; l < L; l++)
+	{
+		int layerSize = gradient[l].weights->height * (gradient[l].weights->width + 1);
+		if (thread < layerSize)
+			break;
+		thread -= layerSize;
+	}
+	if (l == L) return;		// Thread out of range
+	int biases = thread < gradient[l].biases->height;
+	int i = thread % gradient[l].biases->height;
+	int j = biases ? 0 : (thread / gradient[l].weights->height - 1);
+	multiply_prev(layerMultiplier, biases ? gradient[l].biases : gradient[l].weights, i, j);
 }
 __host__ __device__ static Matrix* createStandardBasisVector(int size, int component, double magnitude)
 {
@@ -351,7 +367,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 	Matrix* layerMultiplier;
 	for (int L = 0; L < that->numberOfLayers; L++)
 	{
-		printf("In da loop: %d\n", L);
+		//printf("In da loop: %d\n", L);
 		Matrix *rawOutput = layer_output(&that->layers[L], input, NULL);
 		layerMultiplier = rectarr_clone(that->layers[L].weights);
 
@@ -362,7 +378,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 		// Moved createStandardBasisVector out
 		for (int i = 0; i < gradient[L].weights->height; i++)
 		{
-			printf("In da inner loop: %d\n", i);
+			//printf("In da inner loop: %d\n", i);
 			double df = DF(matrix_get(rawOutput, i, 0));
 			for (int j = 0; j < gradient[L].weights->width; j++)
 			{
@@ -378,7 +394,28 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 		}
 
 		// Take care of previous layers
-		multiply_prev(gradient, L, layerMultiplier);
+		if (!false)
+			multiply_prev_gradient(gradient, L, layerMultiplier);
+		else
+		{
+			Layer* _gradientCuda = (Layer *)malloc(sizeof(Layer) * L);
+			memcpy(_gradientCuda, gradient, sizeof(Layer) * L);
+			for (int l = 0; l < L; l++)
+			{
+				_gradientCuda[l].weights = rectarr_toDevice(_gradientCuda[l].weights);
+				_gradientCuda[l].biases = rectarr_toDevice(_gradientCuda[l].biases);
+			}
+			Layer* gradientCuda;
+			cudaMalloc(&gradientCuda, sizeof(Layer) * L);
+			cudaMemcpy(gradientCuda, _gradientCuda, sizeof(Layer) * L, cudaMemcpyHostToDevice);
+			Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
+			multiply_prev_gradient(gradientCuda, L, layerMultiplierCuda);
+			for (int l = 0; l < L; l++)
+			{
+				_gradientCuda[l].weights = rectarr_toDevice(_gradientCuda[l].weights);
+				_gradientCuda[l].biases = rectarr_toDevice(_gradientCuda[l].biases);
+			}
+		}
 		rectarr_free(layerMultiplier);
 		if (L > 0) rectarr_free(input);
 		input = layer_output(NULL, rawOutput, &that->activation);
@@ -389,7 +426,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 
 	// Now apply cost function multiplier
 	layerMultiplier = matrix_transpose(matrix_multiply_scalar(matrix_subtract(input, example->output), 2));
-	multiply_prev(gradient, that->numberOfLayers, layerMultiplier);
+	multiply_prev_gradient(gradient, that->numberOfLayers, layerMultiplier);
 	rectarr_free(layerMultiplier);
 	if (that->numberOfLayers > 0) rectarr_free(input);
 

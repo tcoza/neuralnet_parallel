@@ -6,7 +6,7 @@
 #include <cuda_runtime_api.h>
 #include <cuda_device_runtime_api.h>
 
-static __host__ __device__ void *mallocu(size_t size)
+static __host__ __device__ void *mallocu(int size)
 {
 	void* ptr;
 #ifndef __CUDA_ARCH__
