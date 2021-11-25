@@ -6,13 +6,24 @@
 #include <cuda_runtime.h>
 #include "mallocu.c"
 
-__host__ __device__ RectangularArray *rectarr_new(int height, int width, int size)
+__host__ __device__ RectangularArray *rectarr_new(int height, int width, size_t size)
 {
 	RectangularArray *that = (RectangularArray *)mallocu(sizeof(RectangularArray));
 	that->size = size;
 	that->height = height;
 	that->width = width;
-	that->array = mallocu(height * width * size);
+	//printf("Creating rectarr %d x %d x %d\n", height, width, size);
+	int totalSizePart = height * width;
+	if (totalSizePart == 0)
+	{
+		printf("Total size part is zero\n");
+	}
+	size_t totalSize = (size_t)totalSizePart * size;
+	that->array = mallocu(totalSize);
+	if (that->array == NULL)
+	{
+		printf("Tried allocating array: %d x %d x %lu (total size part: %d, total size: %lu)\n", height, width, size, totalSizePart, totalSize);
+	}
 	return that;
 }
 

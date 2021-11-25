@@ -12,7 +12,7 @@ typedef struct
     void *array;    // Actual array
 } RectangularArray;
 
-__host__ __device__ RectangularArray *rectarr_new(int height, int width, int size);
+__host__ __device__ RectangularArray *rectarr_new(int height, int width, size_t size);
 __host__ __device__ void *rectarr_get(RectangularArray *that, int i, int j);
 //void *rectarr_set(struct RectangularArray *that, int i, int j, void *data);
 __host__ __device__ void rectarr_foreach(RectangularArray *that, void (*action)(void *, int, int));
