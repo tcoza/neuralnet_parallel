@@ -412,6 +412,7 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 			multiply_prev_gradient(gradientCuda, L, layerMultiplierCuda);
 			for (int l = 0; l < L; l++)
 			{
+				rectarr_free(gradient)
 				_gradientCuda[l].weights = rectarr_toDevice(_gradientCuda[l].weights);
 				_gradientCuda[l].biases = rectarr_toDevice(_gradientCuda[l].biases);
 			}
