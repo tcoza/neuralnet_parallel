@@ -11,6 +11,8 @@
 #include "device_atomic_functions.h"
 #include "mallocu.c"
 
+#define BLOCKDIM_MAX 1024
+
 NeuralNetwork *neuralnetwork_new(int inputSize, int numberOfLayers, int layerSizes[], enum AF_TYPE af_type)
 {
 	NeuralNetwork *that = (NeuralNetwork *)malloc(sizeof(NeuralNetwork) + sizeof(Layer) * numberOfLayers);
@@ -241,7 +243,6 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 			cudaMemcpy(&examplesCuda[x].output, &outputCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
 		}
 
-#define BLOCKDIM_MAX 1024
 		neuralnetwork_getCostGradient_parallel<<<(numberOfExamples-1)/BLOCKDIM_MAX+1,BLOCKDIM_MAX>>>
 				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples);
 		cudaError_t error = cudaDeviceSynchronize();
@@ -433,7 +434,9 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 			cudaMemcpy(&gradientCuda[L], &gradient[L], sizeof(Layer), cudaMemcpyHostToDevice);
 			Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
 
-			multiply_prev_gradient_parallel(gradientCuda, L, layerMultiplierCuda);
+			multiply_prev_gradient_parallel
+				<<<(threads - 1) / BLOCKDIM_MAX + 1, BLOCKDIM_MAX>>>
+				(gradientCuda, L, layerMultiplierCuda);
 			cudaDeviceSynchronize();
 			rectarr_free(rectarr_fromDevice(layerMultiplierCuda));		// Free from Cuda
 		}
@@ -452,7 +455,9 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 	else
 	{
 		Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
-		multiply_prev_gradient_parallel(gradientCuda, L, layerMultiplierCuda);
+		multiply_prev_gradient_parallel
+				<<<(threads - 1) / BLOCKDIM_MAX + 1, BLOCKDIM_MAX>>>
+				(gradientCuda, L, layerMultiplierCuda);
 		cudaDeviceSynchronize();
 		rectarr_free(rectarr_fromDevice(layerMultiplierCuda));		// Free from Cuda
 
