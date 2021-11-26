@@ -20,7 +20,7 @@ NeuralNetwork *neuralnetwork_new(int inputSize, int numberOfLayers, int layerSiz
 	for (int i = 0; i < that->numberOfLayers; i++)
 	{
 		that->layers[i].weights = matrix_new(layerSizes[i], i > 0 ? layerSizes[i-1] : inputSize);
-		that->layers[i].biases = matrix_new(layerSizes[i], 1);
+		that->layers[i].biases = matrix_new(laye+rSizes[i], 1);
 		that->activation.initLayer(&that->layers[i]);
 	}
 	return that;
@@ -58,6 +58,7 @@ __host__ Layer* layer_fromDevice(Layer* thus)
 	cudaMemcpy(that, thus, sizeof(Layer), cudaMemcpyDeviceToHost);
 	that->weights = rectarr_fromDevice(that->weights);
 	that->biases = rectarr_fromDevice(that->biases);
+	cudaFree(thus);
 	return that;
 }
 
@@ -353,6 +354,7 @@ __host__ __device__ static Matrix* createStandardBasisVector(int size, int compo
 // CAREFUL: The weights and biases in the layers will not be matrices, but RectangularArrays of Matrices of size 1 by 1
 static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost)
 {
+#define PARALLEL false
 #ifndef __CUDA_ARCH__
 #define DF(x) (that->activation.df(x))
 #else
@@ -360,6 +362,11 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 #endif // !__CUDA_ARCH__
 
 	Layer *gradient = (Layer *)mallocu(sizeof(Layer) * that->numberOfLayers);
+	
+	Layer *gradientCuda;
+	int threads = 0;
+	if (PARALLEL)
+		cudaMalloc(&gradientCuda, sizeof(Layer) * that->numberOfLayers)
 
 	// Moved multiply_prev out
 
@@ -394,28 +401,41 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 		}
 
 		// Take care of previous layers
-		if (!false)
+		if (!PARALLEL)
 			multiply_prev_gradient(gradient, L, layerMultiplier);
 		else
 		{
-			Layer* _gradientCuda = (Layer *)malloc(sizeof(Layer) * L);
-			memcpy(_gradientCuda, gradient, sizeof(Layer) * L);
-			for (int l = 0; l < L; l++)
+			// Transfer all gradient vectors to device memory
+			RectangularArray *weights = gradient[L].weights;
+			RectangularArray *biases = gradient[L].weights;
+			threads += (weights->height + 1) * weights->width;
+			for (int i = 0; i < weights->height; i++)
 			{
-				_gradientCuda[l].weights = rectarr_toDevice(_gradientCuda[l].weights);
-				_gradientCuda[l].biases = rectarr_toDevice(_gradientCuda[l].biases);
+				for (int j = 0; j < weights->width; j++)
+				{
+					Matrix **e = rectarr_get(weights, i, j);
+					Matrix *m = *e;
+					*e = rectarr_toDevice(m);
+					rectarr_free(w);
+				}
+
+				Matrix **e = rectarr_get(biases, i, 0);
+				Matrix *m = *e;
+				*e = rectarr_toDevice(m);
+				rectarr_free(w);
 			}
-			Layer* gradientCuda;
-			cudaMalloc(&gradientCuda, sizeof(Layer) * L);
-			cudaMemcpy(gradientCuda, _gradientCuda, sizeof(Layer) * L, cudaMemcpyHostToDevice);
+			// Transfer weights and biases
+			gradient[L].weights = rectarr_toDevice(weights);
+			gradient[L].biases = rectarr_toDevice(biases);
+			rectarr_free(weights);
+			rectarr_free(biases);
+			// Copy layer
+			cudaMemcpy(&gradientCuda[L], &gradient[L], sizeof(Layer), cudaMemcpyHostToDevice);
 			Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
-			multiply_prev_gradient(gradientCuda, L, layerMultiplierCuda);
-			for (int l = 0; l < L; l++)
-			{
-				rectarr_free(gradient)
-				_gradientCuda[l].weights = rectarr_toDevice(_gradientCuda[l].weights);
-				_gradientCuda[l].biases = rectarr_toDevice(_gradientCuda[l].biases);
-			}
+
+			multiply_prev_gradient_parallel(gradientCuda, L, layerMultiplierCuda);
+			cudaDeviceSynchronize();
+			rectarr_free(rectarr_fromDevice(layerMultiplierCuda));		// Free from Cuda
 		}
 		rectarr_free(layerMultiplier);
 		if (L > 0) rectarr_free(input);
@@ -427,7 +447,32 @@ static __host__ __device__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 
 	// Now apply cost function multiplier
 	layerMultiplier = matrix_transpose(matrix_multiply_scalar(matrix_subtract(input, example->output), 2));
-	multiply_prev_gradient(gradient, that->numberOfLayers, layerMultiplier);
+	if (!PARALLEL)
+		multiply_prev_gradient(gradient, that->numberOfLayers, layerMultiplier);
+	else
+	{
+		Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
+		multiply_prev_gradient_parallel(gradientCuda, L, layerMultiplierCuda);
+		cudaDeviceSynchronize();
+		rectarr_free(rectarr_fromDevice(layerMultiplierCuda));		// Free from Cuda
+
+		// Transfer gradientCuda to host
+		cudaMemcpy(gradient, gradientCuda, sizeof(Layer) * L, cudaMemcpyDeviceToHost);
+		cudaFree(gradientCuda);
+		for (int L = 0; L < that->numberOfLayers; L++)
+		{
+			gradient[L].weights = rectarr_fromDevice(gradient[L].weights);
+			gradient[L].biases = rectarr_fromDevice(gradient[L].biases);
+			for (int i = 0; i < gradient[L].weights->height; i++)
+			{
+				for (int j = 0; j < gradient[L].weights->width; j++)
+					*rectarr_get(gradient[L].weights, i, j) =
+						rectarr_fromDevice(*rectarr_get(gradient[L].weights, i, j));
+				*rectarr_get(gradient[L].biases, i, 0) =
+					rectarr_fromDevice(*rectarr_get(gradient[L].biases, i, 0));
+			}
+		}
+	}
 	rectarr_free(layerMultiplier);
 	if (that->numberOfLayers > 0) rectarr_free(input);
 

@@ -72,6 +72,8 @@ __host__ RectangularArray* rectarr_fromDevice(RectangularArray* thus)
 	void* thus_array = that->array;
 	that->array = malloc(that->height * that->width * that->size);
 	cudaMemcpy(that->array, thus_array, that->height * that->width * that->size, cudaMemcpyDeviceToHost);
+	cudaFree(thus_array);
+	cudaFree(thus);
 	return that;
 }
 
