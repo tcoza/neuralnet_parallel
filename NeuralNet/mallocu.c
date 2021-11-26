@@ -14,9 +14,9 @@ static __host__ __device__ void *mallocu(int size)
 	if (ptr == NULL)
 		fprintf(stderr, "Malloc error: Insufficient memory available");
 #else
-	int result = cudaMalloc(&ptr, size);
-	if (result != 0)
-		printf("CudaMalloc error: %ld (requested size: %ld)\n", result, size),
+	cudaError_t result = cudaMalloc(&ptr, size);
+	if (result != cudaSuccess)
+		printf("CudaMalloc (size: %ld): (%d) %s\n", size, result, cudaGetErrorString(result)),
 		ptr = NULL;
 #endif
 	return ptr;
@@ -27,6 +27,9 @@ static __host__ __device__ void freeu(void* ptr)
 #ifndef __CUDA_ARCH__
 	free(ptr);
 #else
-	cudaFree(ptr);
+	cudaError_t result = cudaFree(ptr);
+	printf("CudaFree (ptr: %p)\n", ptr);
+	if (result != cudaSuccess)
+		printf("CudaFree (ptr: %p): (%d) %s\n", ptr, result, cudaGetErrorString(result));
 #endif
 }

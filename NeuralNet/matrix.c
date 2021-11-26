@@ -77,9 +77,14 @@ __host__ RectangularArray* rectarr_fromDevice(RectangularArray* thus)
 	return that;
 }
 
+__host__ __device__ void free_array(void* array)
+{
+	freeu(array);
+}
+
 __host__ __device__ void rectarr_free(RectangularArray *that)
 {
-	freeu(that->array);
+	free_array(that->array);
 	freeu(that);
 }
 
@@ -207,17 +212,6 @@ __host__ __device__ Matrix *matrix_multiply(Matrix *m1, Matrix *m2)
 	if (m1->width != m2->height)
 		return NULL;
 	Matrix *ret = matrix_new(m1->height, m2->width);
-
-//	for (int i = 0; i < ret->height; i++)
-//		for (int j = 0; j < ret->width; j++)
-//		{
-//			double sum = 0;
-//			for (int x = 0; x < m1->width; x++)
-//				sum += matrix_get(m1, i, x) * matrix_get(m2, x, j);
-//			matrix_set(ret, i, j, sum);
-//		}
-
-//	return ret;
 
 	memset(ret->array, 0, ret->size * ret->height * ret->width);
 	double *m1_a = (double *)m1->array;
