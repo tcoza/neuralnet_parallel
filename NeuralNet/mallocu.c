@@ -27,8 +27,9 @@ static __host__ __device__ void freeu(void* ptr)
 #ifndef __CUDA_ARCH__
 	free(ptr);
 #else
-	cudaError_t result = cudaFree(ptr);
 	printf("CudaFree (ptr: %p)\n", ptr);
+	cudaError_t result = cudaFree(ptr);
+	printf("CudaFreed (ptr: %p)\n", ptr);
 	if (result != cudaSuccess)
 		printf("CudaFree (ptr: %p): (%d) %s\n", ptr, result, cudaGetErrorString(result));
 #endif
