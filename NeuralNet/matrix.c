@@ -12,17 +12,7 @@ __host__ __device__ RectangularArray *rectarr_new(int height, int width, size_t 
 	that->size = size;
 	that->height = height;
 	that->width = width;
-	int product = height * width;
-	if (product == 0)
-		printf("product is zero\n");
-	int totalSize = (size_t)product * size;
-	if (totalSize == 0)
-		printf("totalSize is zero\n");
-	that->array = mallocu(totalSize);
-	if (that->array == NULL)
-	{
-		printf("Tried allocating array: %d x %d (product: %d, totalSize: %ld)\n", height, width, product, totalSize);
-	}
+	that->array = mallocu(height * width * size);
 	return that;
 }
 

@@ -6,7 +6,7 @@
 #include <cuda_runtime_api.h>
 #include <cuda_device_runtime_api.h>
 
-static __host__ __device__ void *mallocu(int size)
+static __host__ __device__ void *mallocu(size_t size)
 {
 	void* ptr;
 #ifndef __CUDA_ARCH__
@@ -16,7 +16,7 @@ static __host__ __device__ void *mallocu(int size)
 #else
 	cudaError_t result = cudaMalloc(&ptr, size);
 	if (result != cudaSuccess)
-		printf("CudaMalloc (size: %ld): (%d) %s\n", size, result, cudaGetErrorString(result)),
+		printf("CudaMalloc (size: %d): (%d) %s\n", (int)size, result, cudaGetErrorString(result)),
 		ptr = NULL;
 #endif
 	return ptr;
@@ -27,9 +27,7 @@ static __host__ __device__ void freeu(void* ptr)
 #ifndef __CUDA_ARCH__
 	free(ptr);
 #else
-	printf("CudaFree (ptr: %p)\n", ptr);
 	cudaError_t result = cudaFree(ptr);
-	printf("CudaFreed (ptr: %p)\n", ptr);
 	if (result != cudaSuccess)
 		printf("CudaFree (ptr: %p): (%d) %s\n", ptr, result, cudaGetErrorString(result));
 #endif

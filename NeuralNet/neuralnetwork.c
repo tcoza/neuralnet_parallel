@@ -57,7 +57,7 @@ __host__ Layer* layer_toDevice(Layer* that)
 __host__ Layer* layer_fromDevice(Layer* thus)
 {
 	Layer* that = (Layer*)malloc(sizeof(Layer));
-	cudaMemcpy(that, thus, sizeof(Layer), cudaMemcpyDeviceToHost);
+	cudaError_t result = cudaMemcpy(that, thus, sizeof(Layer), cudaMemcpyDeviceToHost);
 	that->weights = rectarr_fromDevice(that->weights);
 	that->biases = rectarr_fromDevice(that->biases);
 	cudaFree(thus);
@@ -192,8 +192,8 @@ Matrix *neuralnetwork_output(NeuralNetwork *that, Matrix *input)
 }
 
 __host__ __device__ static double getCost(Matrix *exOutput, Matrix *output);
-__host__ static Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost);
-__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples);
+__host__ __device__ static Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost);
+__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples, double *cost);
 
 double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step, int parallel)
 {
@@ -232,6 +232,7 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 		NeuralNetwork* thatCuda = neuralnetwork_toDevice(that);
 		TrainingExample* examplesCuda;
 		Layer** gradientPartsCuda;
+		double* costCuda;
 		// That to device
 		cudaMalloc(&examplesCuda, numberOfExamples * sizeof(TrainingExample));
 		cudaMalloc(&gradientPartsCuda, numberOfExamples * sizeof(Layer*));
@@ -242,10 +243,12 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 			cudaMemcpy(&examplesCuda[x].input, &inputCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
 			cudaMemcpy(&examplesCuda[x].output, &outputCuda, sizeof(Matrix*), cudaMemcpyHostToDevice);
 		}
+		cudaMalloc(&costCuda, sizeof(double));
+		cudaMemcpy(costCuda, &cost, sizeof(double), cudaMemcpyHostToDevice);
 
 		neuralnetwork_getCostGradient_parallel
 				<<<(numberOfExamples-1)/BLOCKDIM_MAX+1,BLOCKDIM_MAX>>>
-				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples);
+				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples, costCuda);
 		cudaError_t error = cudaDeviceSynchronize();
 		if (error != cudaSuccess)
 			printf("Cuda error: (%d) %s\n", error, cudaGetErrorString(error));
@@ -253,8 +256,9 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 		cudaMemcpy(gradientParts, gradientPartsCuda, numberOfExamples * sizeof(Layer*), cudaMemcpyDeviceToHost);
 		for (int x = 0; x < numberOfExamples; x++)
 			gradientParts[x] = layer_fromDevice(gradientParts[x]);
+		cudaMemcpy(&cost, costCuda, sizeof(double), cudaMemcpyDeviceToHost);
 
-		return 0;
+		return cost / numberOfExamples;
 	}
 
 	for (int x = 0; x < numberOfExamples; x++)
@@ -299,14 +303,12 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 	return cost / numberOfExamples;
 }
 
-__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples)
+__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples, double *cost)
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	if (x >= numberOfExamples) return;
-	printf("Here\n");
-	double cost = 0;
-	gradientParts[x] = NULL; //neuralnetwork_getCostGradient(that, &examples[x], &cost);
-	printf("There: %lf\n", cost);
+	gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x], cost);
+	//printf("gradientParts[x][0].weights->width: %d (gradientParts[x]: %p)\n", gradientParts[x][0].weights->width, gradientParts[x]);
 }
 
 __host__ __device__ static void multiply_prev(Matrix* layerMultiplier, RectangularArray* rectarr, int i, int j)
@@ -314,30 +316,17 @@ __host__ __device__ static void multiply_prev(Matrix* layerMultiplier, Rectangul
 	Matrix** e = (Matrix**)rectarr_get(rectarr, i, j);
 	Matrix* v = *((Matrix**)e);
 	*((Matrix**)e) = matrix_multiply(layerMultiplier, v);
-	printf("Freeing %p\n", v);
-	printf("And also %p\n", v->array);
 	rectarr_free(v);
 }
 __host__ __device__ static void multiply_prev_gradient(Layer* gradient, int L, Matrix* layerMultiplier)		// Very useful
 {
-	printf("LayerMultiplier initial width: %d\n", layerMultiplier->width);
 	for (int l = 0; l < L; l++)
 	{
-		printf("In loop (%d)\n", l);
 		for (int i = 0; i < gradient[l].weights->height; i++)
-		{
-			printf("Inn loop (%d, %d)\n", l, i);
 			for (int j = 0; j < gradient[l].weights->width; j++)
-			{
-				printf("Innn loop (%d, %d, %d): %d\n", l, i, j, layerMultiplier->width);
 				multiply_prev(layerMultiplier, gradient[l].weights, i, j);
-			}
-		}
 		for (int i = 0; i < gradient[l].biases->height; i++)
-		{
-			printf("Inn loop (%d, %d)\n", l, i);
 			multiply_prev(layerMultiplier, gradient[l].biases, i, 0);
-		}
 	}
 }
 __global__ void multiply_prev_gradient_parallel(Layer* gradient, int L, Matrix* layerMultiplier)
@@ -368,11 +357,11 @@ __host__ __device__ static Matrix* createStandardBasisVector(int size, int compo
 	return v;
 }
 
+static __device__ int lock = 0;		// Lock for atomic add operation
 // Returns a gradient stored in an array of layers.
 // CAREFUL: The weights and biases in the layers will not be matrices, but RectangularArrays of Matrices of size 1 by 1
-static __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost)
+static __device__ __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost)
 {
-#define PARALLEL true
 #ifndef __CUDA_ARCH__
 #define DF(x) (that->activation.df(x))
 #else
@@ -380,11 +369,6 @@ static __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, Traini
 #endif // !__CUDA_ARCH__
 
 	Layer *gradient = (Layer *)mallocu(sizeof(Layer) * that->numberOfLayers);
-	
-	Layer *gradientCuda;
-	int threads = 0;
-	if (PARALLEL)
-		cudaMalloc(&gradientCuda, sizeof(Layer) * that->numberOfLayers);
 
 	// Moved multiply_prev out
 
@@ -392,7 +376,6 @@ static __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, Traini
 	Matrix* layerMultiplier;
 	for (int L = 0; L < that->numberOfLayers; L++)
 	{
-		//printf("In da loop: %d\n", L);
 		Matrix *rawOutput = layer_output(&that->layers[L], input, NULL);
 		layerMultiplier = rectarr_clone(that->layers[L].weights);
 
@@ -403,7 +386,6 @@ static __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, Traini
 		// Moved createStandardBasisVector out
 		for (int i = 0; i < gradient[L].weights->height; i++)
 		{
-			//printf("In da inner loop: %d\n", i);
 			double df = DF(matrix_get(rawOutput, i, 0));
 			for (int j = 0; j < gradient[L].weights->width; j++)
 			{
@@ -419,99 +401,25 @@ static __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, Traini
 		}
 
 		// Take care of previous layers
-		if (!PARALLEL)
-			multiply_prev_gradient(gradient, L, layerMultiplier);
-		else
-		{
-			// Transfer all gradient vectors to device memory
-			RectangularArray *weights = gradient[L].weights;
-			RectangularArray *biases = gradient[L].biases;
-			threads += (weights->height + 1) * weights->width;
-			for (int i = 0; i < weights->height; i++)
-			{
-				for (int j = 0; j < weights->width; j++)
-				{
-					Matrix **e = (Matrix **)rectarr_get(weights, i, j);
-					Matrix *m = *e;
-					*e = rectarr_toDevice(m);
-					//void* thus_array;
-					//cudaMemcpy(&thus_array, &(*e)->array, sizeof(void *), cudaMemcpyDeviceToHost);
-					//printf("Allocated: %p, %p\n", *e, thus_array);
-					rectarr_free(m);
-				}
+		multiply_prev_gradient(gradient, L, layerMultiplier);
 
-				Matrix **e = (Matrix**)rectarr_get(biases, i, 0);
-				Matrix *m = *e;
-				*e = rectarr_toDevice(m);
-				//void* thus_array;
-				//cudaMemcpy(&thus_array, &(*e)->array, sizeof(void*), cudaMemcpyDeviceToHost);
-				//printf("Allocated: %p, %p\n", *e, thus_array);
-				rectarr_free(m);
-			}
-			// Transfer weights and biases
-			gradient[L].weights = rectarr_toDevice(weights);
-			gradient[L].biases = rectarr_toDevice(biases);
-			rectarr_free(weights);
-			rectarr_free(biases);
-			// Copy layer
-			cudaMemcpy(&gradientCuda[L], &gradient[L], sizeof(Layer), cudaMemcpyHostToDevice);
-			Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
-			Matrix m1; cudaMemcpy(&m1, layerMultiplierCuda, sizeof(Matrix), cudaMemcpyDeviceToHost);
-
-			printf("Layer: %d\n", L);
-			printf("layerMultiplierCuda: %p\n", layerMultiplierCuda);
-			multiply_prev_gradient_parallel
-				//<<<(threads - 1) / BLOCKDIM_MAX + 1, BLOCKDIM_MAX>>>
-				<<<1,1>>>
-				(gradientCuda, L, layerMultiplierCuda);
-			cudaError_t error = cudaDeviceSynchronize();
-
-			Matrix m2; cudaMemcpy(&m2, layerMultiplierCuda, sizeof(Matrix), cudaMemcpyDeviceToHost);
-			if (m1.width != m2.width)
-				printf("Not equal!\n");
-
-			Matrix* layerMultiplierFromDevice = rectarr_fromDevice(layerMultiplierCuda);
-			rectarr_free(layerMultiplierFromDevice);		// Free from Cuda
-		}
 		rectarr_free(layerMultiplier);
 		if (L > 0) rectarr_free(input);
 		input = layer_output(NULL, rawOutput, &that->activation);
 	}
 
 	// Update cost
+#ifndef __CUDA_ARCH__
 	*cost += getCost(input, example->output);
-
+#else
+	while (atomicExch(&lock, 1));	// Acquire lock
+	*cost += getCost(input, example->output);
+	lock = 0;	// Release lock
+#endif
 	// Now apply cost function multiplier
 	layerMultiplier = matrix_transpose(matrix_multiply_scalar(matrix_subtract(input, example->output), 2));
-	if (!PARALLEL)
-		multiply_prev_gradient(gradient, that->numberOfLayers, layerMultiplier);
-	else
-	{
-		Matrix* layerMultiplierCuda = rectarr_toDevice(layerMultiplier);
-		multiply_prev_gradient_parallel
-				//<<<(threads - 1) / BLOCKDIM_MAX + 1, BLOCKDIM_MAX>>>
-				<<<1,1>>>
-				(gradientCuda, that->numberOfLayers, layerMultiplierCuda);
-		cudaDeviceSynchronize();
-		rectarr_free(rectarr_fromDevice(layerMultiplierCuda));		// Free from Cuda
-
-		// Transfer gradientCuda to host
-		cudaMemcpy(gradient, gradientCuda, sizeof(Layer) * that->numberOfLayers, cudaMemcpyDeviceToHost);
-		cudaFree(gradientCuda);
-		for (int L = 0; L < that->numberOfLayers; L++)
-		{
-			gradient[L].weights = rectarr_fromDevice(gradient[L].weights);
-			gradient[L].biases = rectarr_fromDevice(gradient[L].biases);
-			for (int i = 0; i < gradient[L].weights->height; i++)
-			{
-				for (int j = 0; j < gradient[L].weights->width; j++)
-					*(Matrix**)rectarr_get(gradient[L].weights, i, j) =
-						rectarr_fromDevice(*(Matrix **)rectarr_get(gradient[L].weights, i, j));
-				*(Matrix**)rectarr_get(gradient[L].biases, i, 0) =
-					rectarr_fromDevice(*(Matrix**)rectarr_get(gradient[L].biases, i, 0));
-			}
-		}
-	}
+	multiply_prev_gradient(gradient, that->numberOfLayers, layerMultiplier);
+	
 	rectarr_free(layerMultiplier);
 	if (that->numberOfLayers > 0) rectarr_free(input);
 
