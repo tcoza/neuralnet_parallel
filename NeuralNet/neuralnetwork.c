@@ -192,8 +192,8 @@ Matrix *neuralnetwork_output(NeuralNetwork *that, Matrix *input)
 }
 
 __host__ __device__ static double getCost(Matrix *exOutput, Matrix *output);
-__host__ __device__ static Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost);
-__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples, double *cost);
+__host__ __device__ static Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost, int *lock);
+__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples, double *cost, int *lock);
 
 double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int numberOfExamples, double step, int parallel)
 {
@@ -225,7 +225,7 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 	if (!parallel)
 	{
 		for (int x = 0; x < numberOfExamples; x++)
-			gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x], &cost);
+			gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x], &cost, NULL);
 	}
 	else
 	{
@@ -233,6 +233,7 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 		TrainingExample* examplesCuda;
 		Layer** gradientPartsCuda;
 		double* costCuda;
+		int* lock;
 		// That to device
 		cudaMalloc(&examplesCuda, numberOfExamples * sizeof(TrainingExample));
 		cudaMalloc(&gradientPartsCuda, numberOfExamples * sizeof(Layer*));
@@ -245,10 +246,12 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 		}
 		cudaMalloc(&costCuda, sizeof(double));
 		cudaMemcpy(costCuda, &cost, sizeof(double), cudaMemcpyHostToDevice);
+		cudaMalloc(&lock, sizeof(int));
+		cudaMemset(lock, 0, sizeof(int));
 
 		neuralnetwork_getCostGradient_parallel
 				<<<(numberOfExamples-1)/BLOCKDIM_MAX+1,BLOCKDIM_MAX>>>
-				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples, costCuda);
+				(thatCuda, examplesCuda, gradientPartsCuda, numberOfExamples, costCuda, lock);
 		cudaError_t error = cudaDeviceSynchronize();
 		if (error != cudaSuccess)
 			printf("Cuda error: (%d) %s\n", error, cudaGetErrorString(error));
@@ -303,11 +306,11 @@ double neuralnetwork_train(NeuralNetwork *that, TrainingExample examples[], int 
 	return cost / numberOfExamples;
 }
 
-__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples, double *cost)
+__global__ void neuralnetwork_getCostGradient_parallel(NeuralNetwork* that, TrainingExample* examples, Layer** gradientParts, int numberOfExamples, double *cost, int *lock)
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	if (x >= numberOfExamples) return;
-	gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x], cost);
+	gradientParts[x] = neuralnetwork_getCostGradient(that, &examples[x], cost, lock);
 	//printf("gradientParts[x][0].weights->width: %d (gradientParts[x]: %p)\n", gradientParts[x][0].weights->width, gradientParts[x]);
 }
 
@@ -357,10 +360,9 @@ __host__ __device__ static Matrix* createStandardBasisVector(int size, int compo
 	return v;
 }
 
-static __device__ int lock = 0;		// Lock for atomic add operation
 // Returns a gradient stored in an array of layers.
 // CAREFUL: The weights and biases in the layers will not be matrices, but RectangularArrays of Matrices of size 1 by 1
-static __device__ __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost)
+static __device__ __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *that, TrainingExample *example, double *cost, int *lock)
 {
 #ifndef __CUDA_ARCH__
 #define DF(x) (that->activation.df(x))
@@ -412,9 +414,13 @@ static __device__ __host__ Layer *neuralnetwork_getCostGradient(NeuralNetwork *t
 #ifndef __CUDA_ARCH__
 	*cost += getCost(input, example->output);
 #else
-	while (atomicExch(&lock, 1));	// Acquire lock
+	//printf("Acquiring lock...\n");
+	//while (atomicExch(lock, 1));	// Acquire lock
+	//printf("Acquired lock\n");
 	*cost += getCost(input, example->output);
-	lock = 0;	// Release lock
+	//printf("Releasing lock...\n");
+	//*lock = 0;	// Release lock
+	//printf("Releasied lock\n");
 #endif
 	// Now apply cost function multiplier
 	layerMultiplier = matrix_transpose(matrix_multiply_scalar(matrix_subtract(input, example->output), 2));
